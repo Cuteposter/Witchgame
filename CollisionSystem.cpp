@@ -466,7 +466,7 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 			{
 				//std::cout << "ABOVE SLOPE RAY 1\n";
 				aboveSlope = true;
-				if (p->ray1->y2 - (p->y + 56) < dist)
+				if (p->ray1->y2 - (p->y + 60) < dist)
 					playerSetSlope(p, p->ray1, ray1);
 			}
 		}
@@ -476,7 +476,7 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 			{
 				//std::cout << "ABOVE SLOPE RAY 2\n";
 				aboveSlope = true;
-				if (p->ray2->y2 - (p->y + 56) < dist)
+				if (p->ray2->y2 - (p->y + 60) < dist)
 					playerSetSlope(p, p->ray2, ray2);
 			}
 		}
@@ -485,14 +485,14 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 			//std::cout << "ABOVE SLOPE BOTH RAYS\n";
 			aboveSlope = true;
 			if (p->ray1->y2 < p->ray2->y2)
-				if (p->ray1->y2 - (p->y + 56) < dist)
+				if (p->ray1->y2 - (p->y + 60) < dist)
 				{
 					playerSetSlope(p, p->ray1, ray1);
 				}
 
 
 			if (p->ray2->y2 < p->ray1->y2)
-				if (p->ray2->y2 - (p->y + 56) < dist)
+				if (p->ray2->y2 - (p->y + 60) < dist)
 				{
 					playerSetSlope(p, p->ray2, ray2);
 				}
