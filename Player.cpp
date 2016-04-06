@@ -290,7 +290,15 @@ void Player::stepx()
 	{
 		if (left)
 		{
-			vx = -HSPEED;
+			if (vx > 0)
+				vx = -vx / 10;
+			else
+				vx -= ACCEL;
+				//vx = -HSPEED;
+
+			if (vx < -HSPEED)
+				vx = -HSPEED;
+
 			if (abs(slope) >= 1.5f && onSlope)
 			{
 				if (sdir == -1)
@@ -300,7 +308,15 @@ void Player::stepx()
 
 		if (right)
 		{
-			vx = HSPEED;
+			if (vx < 0)
+				vx = -vx / 10;
+			else
+				vx += ACCEL;
+			//vx = -HSPEED;
+
+			if (vx > HSPEED)
+				vx = HSPEED;
+
 			if (abs(slope) >= 1.5f && onSlope)
 			{
 				if (sdir == 1)
@@ -308,8 +324,10 @@ void Player::stepx()
 			}
 		}
 
-		if (!ground)
-			vx *= 0.75f;
+		//In air immediate velocity fall-off
+		//if (!ground)
+			vx *= 0.9f;
+
 
 		if (onSlope && sdir == - dir)	//if ((sdir != 0) && (sdir == -dir))
 			y += slope*vx;	//Maybe ceil() this?
@@ -335,18 +353,38 @@ void Player::stepx()
 			if (vx > 0)
 			{
 				vx -= FRICTION;
-				if (vx < 0)
+				if (ground)
 				{
-					vx = 0;
+					if (vx < 0)
+					{
+						vx = 0;
+					}
+				}
+				else
+				{
+					if (vx < HSPEED / 3)
+					{
+						vx = HSPEED / 3;
+					}
 				}
 			}
 
 			if (vx < 0)
 			{
 				vx += FRICTION;
-				if (vx > 0)
+				if (ground)
 				{
-					vx = 0;
+					if (vx < 0)
+					{
+						vx = 0;
+					}
+				}
+				else
+				{
+					if (vx > -HSPEED / 3)
+					{
+						vx = -HSPEED / 3;
+					}
 				}
 			}
 		}
@@ -492,6 +530,44 @@ int Player::checkWall(SDL_Rect b)
 		return TOP;
 	}
 	
+	return NONE;
+}
+
+int Player::checkLadder(SDL_Rect b)
+{
+	SDL_Rect colLeft;
+	colLeft.x = x;
+	colLeft.y = y + 16;
+	colLeft.w = 8;
+	colLeft.h = 32;
+
+	SDL_Rect colRight;
+	colRight.x = x + 24;
+	colRight.y = y + 16;
+	colRight.w = 8;
+	colRight.h = 32;
+
+	SDL_Rect colHead;
+	colHead.x = x + 2;
+	colHead.y = y;
+	colHead.w = 28;
+	colHead.h = 8;
+
+	if (SDL_HasIntersection(&colLeft, &b))
+	{
+		return LEFT;
+	}
+
+	if (SDL_HasIntersection(&colRight, &b))
+	{
+		return RIGHT;
+	}
+
+	if (SDL_HasIntersection(&colHead, &b))
+	{
+		return TOP;
+	}
+
 	return NONE;
 }
 

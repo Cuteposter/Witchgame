@@ -78,6 +78,7 @@ public:
 	bool WALKING = false;
 	bool HURT = false;
 	bool SHOOT = false;
+	bool LADDER = false;
 
 	//New animation code
 	Animation *idle, *walk, *jmp;
@@ -109,6 +110,7 @@ public:
 	//Collision check
 	int checkOnGround(SDL_Rect b, bool onlyTop);
 	int checkWall(SDL_Rect b);
+	int checkLadder(SDL_Rect b);
 	bool onGround();
 	void setGround(bool g);
 
@@ -119,10 +121,11 @@ public:
 	void render(SDL_Renderer* r, Camera* cam);
 
 	//Physics values
-	float HSPEED = 6.0f;
-	float VSPEED = 12.0f;
+	float HSPEED = 5.0f;
+	float VSPEED = 9.0f;
 	float GRAVITY = 0.5f;
 	float TVSPEED = 11.5f;
+	float ACCEL = 0.7f;
 	float FRICTION = 0.9f;
 
 	//DEBUG SHEIT

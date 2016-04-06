@@ -115,6 +115,7 @@ bool init()
 			{
 				//Initialize renderer color
 				SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+				//SDL_RenderSetScale(gRenderer, 2.0f, 2.0f);
 
 				//Initialize PNG loading
 				int imgFlags = IMG_INIT_PNG;
@@ -563,7 +564,7 @@ int main(int argc, char* args[])
 			SDL_Event e;
 
 			//Play the music
-			Mix_PlayMusic(gMusic, -1);
+			//Mix_PlayMusic(gMusic, -1);
 
 			//The frames per second timer
 			LTimer fpsTimer;
