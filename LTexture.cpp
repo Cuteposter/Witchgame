@@ -15,6 +15,23 @@ LTexture::~LTexture()
 	free();
 }
 
+bool LTexture::createBlank(SDL_Renderer* gRenderer, int width, int height, SDL_TextureAccess access)
+{
+	//Create uninitialized texture
+	mTexture = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA8888, access, width, height);
+	if (mTexture == NULL)
+	{
+		printf("Unable to create blank texture! SDL Error: %s\n", SDL_GetError());
+	}
+	else
+	{
+		mWidth = width;
+		mHeight = height;
+	}
+
+	return mTexture != NULL;
+}
+
 bool LTexture::loadFromFile(std::string path, SDL_Renderer* gRenderer)
 {
 	//Get rid of preexisting texture
@@ -155,4 +172,9 @@ int LTexture::getWidth()
 int LTexture::getHeight()
 {
 	return mHeight;
+}
+
+SDL_Texture* LTexture::getTexture()
+{
+	return mTexture;
 }

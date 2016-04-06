@@ -37,6 +37,12 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 	colFeet.w = 24;
 	colFeet.h = 9;
 
+	SDL_Rect colFeetAbove;
+	colFeet.x = p->x + 4;
+	colFeet.y = p->y + 48;
+	colFeet.w = 24;
+	colFeet.h = 9;
+
 	ComponentCollision* c = e->getComponent<ComponentCollision>();
 	if (c != NULL)
 	{
@@ -58,8 +64,6 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 					m->show = true;
 				}
 			}
-
-			return true;
 		}
 		else
 		{
@@ -73,8 +77,34 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 				}
 			}
 		}
+
+		if (SDL_HasIntersection(&colFeet, &(c->rect)))
+		{
+			ComponentType* t = e->getComponent<ComponentType>();
+			if (t != NULL)
+			{
+				if (t->type == LADDER)
+				{
+					colLadder = true;
+					grounded = true;
+				}
+			}
+		}
+		else
+		{
+			ComponentType* t = e->getComponent<ComponentType>();
+			if (t != NULL)
+			{
+				if (t->type == LADDER)
+				{
+					colLadder |= false;
+					grounded |= false;
+				}
+			}
+		}
 	}
 
+	p->LADDER = colLadder;
 	//bool grounded = false;
 
 	ComponentSolid* g = e->getComponent<ComponentSolid>();
@@ -436,7 +466,7 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 			{
 				//std::cout << "ABOVE SLOPE RAY 1\n";
 				aboveSlope = true;
-				if (p->ray1->y2 - (p->y + 64) < dist)
+				if (p->ray1->y2 - (p->y + 56) < dist)
 					playerSetSlope(p, p->ray1, ray1);
 			}
 		}
@@ -446,7 +476,7 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 			{
 				//std::cout << "ABOVE SLOPE RAY 2\n";
 				aboveSlope = true;
-				if (p->ray2->y2 - (p->y + 64) < dist)
+				if (p->ray2->y2 - (p->y + 56) < dist)
 					playerSetSlope(p, p->ray2, ray2);
 			}
 		}
@@ -455,14 +485,14 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 			//std::cout << "ABOVE SLOPE BOTH RAYS\n";
 			aboveSlope = true;
 			if (p->ray1->y2 < p->ray2->y2)
-				if (p->ray1->y2 - (p->y + 64) < dist)
+				if (p->ray1->y2 - (p->y + 56) < dist)
 				{
 					playerSetSlope(p, p->ray1, ray1);
 				}
 
 
 			if (p->ray2->y2 < p->ray1->y2)
-				if (p->ray2->y2 - (p->y + 64) < dist)
+				if (p->ray2->y2 - (p->y + 56) < dist)
 				{
 					playerSetSlope(p, p->ray2, ray2);
 				}

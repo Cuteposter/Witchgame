@@ -14,6 +14,9 @@ public:
 	//Deallocates memory
 	~LTexture();
 
+	//Creates a blank texture with renderer access available
+	bool createBlank(SDL_Renderer* gRenderer, int width, int height, SDL_TextureAccess access);
+
 	//Loads image at specified path
 	bool loadFromFile(std::string path, SDL_Renderer* gRenderer);
 
@@ -43,6 +46,9 @@ public:
 	//Gets image dimensions
 	int getWidth();
 	int getHeight();
+
+	//Sets texture as target, if it was created as a renderer targetable texture
+	SDL_Texture* getTexture();
 
 private:
 	//The renderer that will render this texture to the screen

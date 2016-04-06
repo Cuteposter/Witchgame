@@ -62,6 +62,9 @@ SDL_Window* gWindow = NULL;
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
 
+//Texture renderer for scene manipulation
+LTexture tRenderer;
+
 //Globally used font
 TTF_Font *gFont = NULL;
 
@@ -113,6 +116,15 @@ bool init()
 			}
 			else
 			{
+				if (!tRenderer.createBlank(gRenderer, SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, SDL_TEXTUREACCESS_TARGET))
+				{
+					printf("Failed to create target texture!\n");
+					success = false;
+				}
+
+				//Set texture as render target for scene manipulation
+				SDL_SetRenderTarget(gRenderer, tRenderer.getTexture());
+
 				//Initialize renderer color
 				SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 				//SDL_RenderSetScale(gRenderer, 2.0f, 2.0f);
@@ -471,11 +483,20 @@ int main(int argc, char* args[])
 							ent->add(new ComponentSlope(false));
 							break;
 						case 4:
-							Entity* fire = w->createEntity();
-							fire->add(new ComponentPosition{ tx, ty });
-							fire->add(new ComponentSprite(gRenderer, "./res/spr/part_glowball.png", 64, 64));
-							fire->add(new ComponentColor(255, 50, 0, 255));
-							fire->add(new ComponentEmitter{ 10 });
+							ent = w->createEntity();
+							ent->add(new ComponentPosition{ tx, ty });
+							ent->add(new ComponentSprite(gRenderer, "./res/spr/part_glowball.png", 64, 64));
+							ent->add(new ComponentColor(255, 50, 0, 255));
+							ent->add(new ComponentEmitter{ 10 });
+							break;
+						case 5:
+							break;
+						case 6:
+							ent = w->createEntity();
+							ent->add(new ComponentPosition{ tx, ty });
+							ent->add(new ComponentType(LADDER));
+							ent->add(new ComponentSprite(gRenderer, "./res/spr/ladder.png", tw, th));
+							ent->add(new ComponentCollision{ tx, ty, tw, th, false });
 							break;
 						}
 
@@ -622,7 +643,7 @@ int main(int argc, char* args[])
 						if (e.key.keysym.sym == SDLK_TAB)
 						{
 							val++;
-							if (val > 4)
+							if (val > 5)
 								val = 0;
 						}
 
@@ -644,6 +665,9 @@ int main(int argc, char* args[])
 								break;
 							case 4:
 								game.p.FRICTION += 0.1f;
+								break;
+							case 5:
+								game.p.ACCEL += 0.1f;
 								break;
 							}
 						}
@@ -667,6 +691,9 @@ int main(int argc, char* args[])
 							case 4:
 								game.p.FRICTION -= 0.1f;
 								break;
+							case 5:
+								game.p.ACCEL -= 0.1f;
+								break;
 							}
 						}
 					}
@@ -686,6 +713,7 @@ int main(int argc, char* args[])
 				
 				//Make a reset method for this
 				cs->grounded = false;
+				cs->colLadder = false;
 				cs->aboveSlope = false;
 
 				//game.step(w);
@@ -762,6 +790,14 @@ int main(int argc, char* args[])
 				}
 				rs->drawStringSprExt(4, 20, hp, &red);
 
+				//Update screen
+				SDL_SetRenderTarget(gRenderer, NULL);
+
+				/*EXPERIMENTAL PIXEL DOUBLING! MAYBE IGNORE?*/
+				SDL_Point screenCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
+				//tRenderer.renderScaled(gRenderer, -SCREEN_WIDTH / 4, -SCREEN_HEIGHT / 4, SCREEN_WIDTH * 4, SCREEN_HEIGHT * 4);
+				tRenderer.renderScaled(gRenderer, 0, 0, SCREEN_WIDTH*2, SCREEN_HEIGHT*2);
+
 				if (h)
 				{
 					/*DEBUG PRINTING*/
@@ -805,6 +841,7 @@ int main(int argc, char* args[])
 					std::string pslope(sbuff);
 					rs->drawStringSpr(124, 36, "SLOPE: " + pslope);
 					rs->drawStringSpr(124, 52, "ON SLOPE: " + std::to_string(game.p.onSlope));
+					rs->drawStringSpr(124, 68, "LADDER: " + std::to_string(game.p.LADDER));
 
 					//Physics
 					rs->drawStringSpr(202, 4 + (16 * val), ">");
@@ -829,13 +866,17 @@ int main(int argc, char* args[])
 					std::string fric(sbuff);
 					rs->drawStringSpr(210, 68, "FRICTION: " + fric);
 
+					sprintf_s(sbuff, "%.1f", game.p.ACCEL);
+					std::string accel(sbuff);
+					rs->drawStringSpr(210, 84, "ACCELERATION: " + accel);
+
 					/*DEBUG CAMERA*/
 					cam->render(gRenderer);
 					rs->drawStringSpr(12, 4, std::to_string(cam->x) + ", " + std::to_string(cam->y));
 				}
 
-				//Update screen
 				SDL_RenderPresent(gRenderer);
+				SDL_SetRenderTarget(gRenderer, tRenderer.getTexture());
 				++countedFrames;
 			}
 		}

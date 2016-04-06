@@ -118,6 +118,11 @@ void Player::handleEvent(SDL_Event& e, World* w, SDL_Renderer* r)
 		case SDLK_UP: 
 			if (freemove)
 				vy = -MSPEED;
+
+			onLadder = LADDER;
+			if (onLadder)
+				y -= 8;
+
 			break;
 		case SDLK_DOWN:
 			if (freemove)
@@ -126,6 +131,12 @@ void Player::handleEvent(SDL_Event& e, World* w, SDL_Renderer* r)
 		case SDLK_SPACE:
 			if (ground && !freemove)
 			{
+				if (onLadder)
+				{
+					onLadder = false;
+					break;
+				}
+
 				vy = -VSPEED;
 				onSlope = false;
 				sdir = 0;
@@ -234,6 +245,9 @@ void Player::step()
 {	
 	xp = x;
 	yp = y;
+
+	if (!LADDER)
+		onLadder = false;
 
 	if (!freemove)
 	{
@@ -425,7 +439,7 @@ void Player::stepy()
 	//{
 		//std::cout << "LOL ";
 	
-		if (!ground)
+		if (!ground && !onLadder)
 		{
 			if (vy < 0 && jump == false)
 				vy += 1.0f;
@@ -439,7 +453,7 @@ void Player::stepy()
 		}
 	//}
 
-	if (ground)
+	if (ground || onLadder)
 	{
 		vy = 0;
 	}
