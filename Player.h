@@ -48,6 +48,7 @@ public:
 	bool wasslope;
 	bool onSlope;
 	bool onLadder;
+	bool aboveLadder;
 	int sdir; 
 
 	LTimer animT;

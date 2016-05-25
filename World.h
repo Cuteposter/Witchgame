@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 #include "Entity.h"
+#include "Polygon.h"
+#include "Lighting.h"
 class World
 {
 public:
@@ -11,6 +13,8 @@ public:
 	int c;
 
 	std::vector<Entity*> entities;
+	std::vector<Light*> lights;
+	std::vector<m_Polygon*> polygons;
 	Entity* createEntity();
 };
 

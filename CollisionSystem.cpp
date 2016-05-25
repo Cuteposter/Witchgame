@@ -37,12 +37,6 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 	colFeet.w = 24;
 	colFeet.h = 9;
 
-	SDL_Rect colFeetAbove;
-	colFeet.x = p->x + 4;
-	colFeet.y = p->y + 48;
-	colFeet.w = 24;
-	colFeet.h = 9;
-
 	ComponentCollision* c = e->getComponent<ComponentCollision>();
 	if (c != NULL)
 	{
@@ -63,6 +57,7 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 					ComponentMessage* m = e->getComponent<ComponentMessage>();
 					m->show = true;
 				}
+
 			}
 		}
 		else
@@ -78,15 +73,27 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 			}
 		}
 
-		if (SDL_HasIntersection(&colFeet, &(c->rect)))
+		SDL_Rect colFeetBelow;
+		colFeetBelow.x = p->x + 4;
+		colFeetBelow.y = p->y + 64;
+		colFeetBelow.w = 24;
+		colFeetBelow.h = 5;
+
+		SDL_Rect colFeetAbove;
+		colFeetAbove.x = p->x + 4;
+		colFeetAbove.y = p->y + 56;
+		colFeetAbove.w = 24;
+		colFeetAbove.h = 5;
+
+		if (SDL_HasIntersection(&colFeetAbove, &(c->rect)))
 		{
 			ComponentType* t = e->getComponent<ComponentType>();
 			if (t != NULL)
 			{
 				if (t->type == LADDER)
 				{
-					colLadder = true;
-					grounded = true;
+					belowLadder = true;
+					//grounded = true;
 				}
 			}
 		}
@@ -97,15 +104,41 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 			{
 				if (t->type == LADDER)
 				{
-					colLadder |= false;
-					grounded |= false;
+					belowLadder |= false;
+					//grounded |= false;
+				}
+			}
+		}
+
+
+		if (SDL_HasIntersection(&colFeetBelow, &(c->rect)))
+		{
+			ComponentType* t = e->getComponent<ComponentType>();
+			if (t != NULL)
+			{
+				if (t->type == LADDER)
+				{
+					aboveLadder = true;
+					//grounded = true;
+				}
+			}
+		}
+		else
+		{
+			ComponentType* t = e->getComponent<ComponentType>();
+			if (t != NULL)
+			{
+				if (t->type == LADDER)
+				{
+					aboveLadder |= false;
+					//grounded |= false;
 				}
 			}
 		}
 	}
 
-	p->LADDER = colLadder;
-	//bool grounded = false;
+	p->LADDER = belowLadder;
+	p->aboveLadder = aboveLadder;
 
 	ComponentSolid* g = e->getComponent<ComponentSolid>();
 	if (g != NULL)

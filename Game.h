@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <vector>
 
+#include "FrameBufferObject.h"
+
 #include "GameEntities.h"
 #include "ComponentSolid.h"
 
@@ -15,6 +17,21 @@
 #include "Camera.h"
 #include "Solid.h"
 #include "PEngine.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <GL/glew.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#define NO_SDL_GLEXT
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_opengl.h>
 
 class Game
 {
@@ -29,6 +46,7 @@ public:
 	PEngine* emitter;
 
 	SDL_Renderer* r;
+	FrameBufferObject* fbo;
 	Player p;
 	LTexture bg;
 

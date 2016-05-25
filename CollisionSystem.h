@@ -17,7 +17,8 @@ public:
 	~CollisionSystem();
 
 	bool grounded = false;
-	bool colLadder = false;
+	bool belowLadder = false;
+	bool aboveLadder = false;
 	bool aboveSlope = false;
 
 	bool handle(Entity* e1, Entity* e2);

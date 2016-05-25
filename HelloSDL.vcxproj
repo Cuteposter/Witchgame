@@ -39,10 +39,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>C:\SDL2-2.0.3\SDL2_image-2.0.0\lib\x86;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Lib;C:\SDL2-2.0.3\SDL2_ttf-2.0.12\lib\x86;C:\SDL2-2.0.3\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\glew-1.13.0\lib\Release\Win32;C:\SDL2-2.0.3\SDL2_image-2.0.0\lib\x86;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Lib;C:\SDL2-2.0.3\SDL2_ttf-2.0.12\lib\x86;C:\SDL2-2.0.3\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Include;C:\glew-1.13.0\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LibraryPath>C:\SDL2-2.0.3\SDL2_image-2.0.0\lib\x86;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Lib;C:\SDL2-2.0.3\SDL2_ttf-2.0.12\lib\x86;C:\SDL2-2.0.3\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\glew-1.13.0\lib\Release\Win32;C:\SDL2-2.0.3\SDL2_image-2.0.0\lib\x86;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Lib;C:\SDL2-2.0.3\SDL2_ttf-2.0.12\lib\x86;C:\SDL2-2.0.3\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Include;C:\glew-1.13.0\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -54,7 +56,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\SDL2-2.0.3\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;glew32.lib;opengl32.lib</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -72,7 +74,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>C:\SDL2-2.0.3\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_mixer.lib;SDL2_ttf.lib;glew32.lib;opengl32.lib</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -88,10 +90,12 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Entity.cpp" />
     <ClCompile Include="FireSystem.cpp" />
+    <ClCompile Include="FrameBufferObject.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="lib\base64.cpp" />
     <ClCompile Include="lib\tinyxml2.cpp" />
     <ClCompile Include="lib\tmxparser.cpp" />
+    <ClCompile Include="Lighting.cpp" />
     <ClCompile Include="LTexture.cpp" />
     <ClCompile Include="LTimer.cpp" />
     <ClCompile Include="main.cpp" />
@@ -101,6 +105,7 @@
     <ClCompile Include="PEnergy.cpp" />
     <ClCompile Include="PEngine.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Polygon.cpp" />
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="RenderSystem.cpp" />
     <ClCompile Include="Room.cpp" />
@@ -130,6 +135,7 @@
     <ClInclude Include="Entity.h" />
     <ClInclude Include="EntityTypes.h" />
     <ClInclude Include="FireSystem.h" />
+    <ClInclude Include="FrameBufferObject.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameEntities.h" />
     <ClInclude Include="ComponentSprite.h" />
@@ -138,6 +144,7 @@
     <ClInclude Include="lib\base64.h" />
     <ClInclude Include="lib\tinyxml2.h" />
     <ClInclude Include="lib\tmxparser.h" />
+    <ClInclude Include="Lighting.h" />
     <ClInclude Include="LTexture.h" />
     <ClInclude Include="LTimer.h" />
     <ClInclude Include="Menu.h" />
@@ -146,6 +153,7 @@
     <ClInclude Include="PEnergy.h" />
     <ClInclude Include="PEngine.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="Polygon.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="RenderSystem.h" />
     <ClInclude Include="Room.h" />
@@ -153,6 +161,7 @@
     <ClInclude Include="Solid.h" />
     <ClInclude Include="StarPal.h" />
     <ClInclude Include="TestSystem.h" />
+    <ClInclude Include="Vector2.h" />
     <ClInclude Include="World.h" />
     <ClInclude Include="WorldEntity.h" />
   </ItemGroup>

@@ -127,6 +127,23 @@ void Player::handleEvent(SDL_Event& e, World* w, SDL_Renderer* r)
 		case SDLK_DOWN:
 			if (freemove)
 				vy = MSPEED;
+
+			if (!onLadder && aboveLadder)
+			{
+				onLadder = true;
+				LADDER = true;
+			}
+
+			if (onLadder)
+			{
+				if (!aboveLadder)
+				{
+					onLadder = false;
+				}
+				else
+					y += 8;
+			}
+
 			break;
 		case SDLK_SPACE:
 			if (ground && !freemove)
@@ -677,6 +694,23 @@ void Player::render(SDL_Renderer* r, Camera* cam)
 	colHead.y = y - cam->y;
 	colHead.w = 28;
 	colHead.h = 8;
+
+	SDL_Rect colFeetBelow;
+	colFeetBelow.x = x + 4 - cam->x;
+	colFeetBelow.y = y + 64 -cam->y;
+	colFeetBelow.w = 24;
+	colFeetBelow.h = 5;
+
+	SDL_Rect colFeetAbove;
+	colFeetAbove.x = x + 4 - cam->x;
+	colFeetAbove.y = y + 56 - cam->y;
+	colFeetAbove.w = 24;
+	colFeetAbove.h = 5;
+
+	//SDL_SetRenderDrawColor(r, 0xFF, 0x00, 0xFF, 0xFF);
+	//SDL_RenderDrawRect(r, &colFeetBelow);
+	//SDL_SetRenderDrawColor(r, 0x00, 0xFF, 0xFF, 0xFF);
+	//SDL_RenderDrawRect(r, &colFeetAbove);
 
 	/*SDL_SetRenderDrawColor(r, 0x00, 0x00, 0xFF, 0xFF);
 	SDL_RenderDrawRect(r, &rect);

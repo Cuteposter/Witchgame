@@ -54,6 +54,8 @@ void RenderSystem::drawStringSpr(int x, int y, std::string str)
 {
 	//std::cout << "String to draw char " << string << " at " << x << ", " << y << '\n' << "sprFont[" << string-32 << "]\n";
 	int adjust = 0;
+
+
 	for (int i = 0; i < (int)str.length(); i++)
 	{
 		//adjust = 0;
@@ -85,12 +87,15 @@ void RenderSystem::drawStringSpr(int x, int y, std::string str)
 		SDL_Rect* c = sprFont[cur - 32];
 		sprFontT.setColor(0x00, 0x00, 0x00);
 		sprFontT.setAlpha(128);
-		sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + 1, c);
+		sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
 		
 		sprFontT.setColor(0xFF, 0xFF, 0xFF);
 		sprFontT.setAlpha(255);
-		sprFontT.render(renderer, x + (6*i) - adjust, y, c);
+		sprFontT.render(renderer, x + (6 * i) - adjust, y+wave, c);
+
+		wave = 3 * sin(i+warble);
 	}
+	warble += 0.005;
 }
 
 void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* color)
@@ -128,12 +133,15 @@ void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* co
 		SDL_Rect* c = sprFont[cur - 32];
 		sprFontT.setColor(0x00, 0x00, 0x00);
 		sprFontT.setAlpha(128);
-		sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + 1, c);
+		sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
 
 		sprFontT.setColor(color->r, color->g, color->b);
 		sprFontT.setAlpha(color->a);
-		sprFontT.render(renderer, x + (6 * i) - adjust, y, c);
+		sprFontT.render(renderer, x + (6 * i) - adjust, y + wave, c);
+
+		wave = 3 * sin(warble);
 	}
+	warble += 0.005;
 }
 
 int RenderSystem::sprstrlen(std::string str)
@@ -173,6 +181,46 @@ int RenderSystem::sprstrlen(std::string str)
 	}
 
 	return width - adjust;
+}
+
+void RenderSystem::drawLighting(World* w, FrameBufferObject* fbo)
+{
+	//Set up the main fbo
+	fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
+	glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT);
+
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glViewport(0, 0, fbo->width, fbo->height);
+
+	//Draw each light to a secondary texture, then draw that one to the primary
+	for (int i = 0; i < w->lights.size(); i++) {
+		//Draw to secondary texture
+		fbo->setRenderToTexture(1);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glBlendEquation(GL_FUNC_ADD);
+		glBlendFunc(GL_SRC_ALPHA, GL_ZERO);
+
+		//Draw the light alpha
+		glColorMask(false, false, false, true);
+		w->lights[i]->drawAlpha(w);
+
+		//Draw the light color
+		glColorMask(true, true, true, false);
+		w->lights[i]->draw(w);
+
+		glColorMask(true, true, true, true);
+
+		//Draw second texture to the first one
+		fbo->setRenderToTexture(0);
+		glBlendEquation(GL_FUNC_ADD);
+		glBlendFunc(GL_ONE, GL_ONE);
+		fbo->draw(1);
+	}
+	fbo->unsetRenderToTexture();
+	fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
+	glPopAttrib();
 }
 
 void RenderSystem::handle(Entity* e, Camera* cam)

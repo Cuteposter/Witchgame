@@ -1,4 +1,18 @@
-//Using SDL, SDL_image, standard IO, and strings
+//Using OpenGL, SDL, SDL_image, standard IO, and strings
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <GL/glew.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#define NO_SDL_GLEXT
+#include <SDL_opengl.h>
+
+
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -17,6 +31,8 @@
 #include "Menu.h"
 #include "Solid.h"
 #include "Camera.h"
+
+#include "FrameBufferObject.h"
 
 //ECS testing...
 #include "World.h"
@@ -39,6 +55,8 @@
 #include "FireSystem.h"
 #include "MoveSystem.h"
 #include "CollisionSystem.h"
+
+
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -75,6 +93,9 @@ LTexture gTextTexture;
 Mix_Music *gMusic = NULL;
 
 
+//OpenGL rendering context
+SDL_GLContext glcontext;
+
 //Object pointers
 //Player p("./res/spr/witch.png");
 Menu* m = new Menu();
@@ -99,7 +120,7 @@ bool init()
 		}
 
 		//Create window
-		gWindow = SDL_CreateWindow("Witchgame", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+		gWindow = SDL_CreateWindow("Witchgame", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 		if (gWindow == NULL)
 		{
 			printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
@@ -116,6 +137,41 @@ bool init()
 			}
 			else
 			{
+				//Create OpenGL context
+				if ((glcontext = SDL_GL_CreateContext(gWindow)) == NULL) {
+					std::cout << "Error creating OpenGL context: " << SDL_GetError() << std::endl;
+					success = false;
+				}
+				glewInit();
+
+				//Initialize OpenGL
+				//SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+				//glEnable(GL_DEPTH_TEST);
+				//glDepthFunc(GL_LEQUAL);
+
+				//glEnable(GL_TEXTURE_2D);
+				//glEnable(GL_BLEND);
+				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+				//glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+				//glMatrixMode(GL_PROJECTION);
+				//glLoadIdentity();
+
+				//glOrtho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, -1.0f, 1.0f);
+
+				//glMatrixMode(GL_MODELVIEW);
+				//glLoadIdentity();
+
+				//glMatrixMode(GL_TEXTURE);
+				//glLoadIdentity();
+
+				//glDisable(GL_CULL_FACE);
+
+
 				if (!tRenderer.createBlank(gRenderer, SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, SDL_TEXTUREACCESS_TARGET))
 				{
 					printf("Failed to create target texture!\n");
@@ -210,6 +266,9 @@ bool loadMedia()
 
 void close()
 {
+	//Dispose of OpenGL context
+	SDL_GL_DeleteContext(glcontext);
+
 	//Free loaded images
 	gTextTexture.free();
 
@@ -263,6 +322,11 @@ int main(int argc, char* args[])
 	CollisionSystem* cs = new CollisionSystem();
 	Camera* cam = new Camera(0, 0, 192, 64, 640 - (192*2), 480 - 128);
 	Background* back = NULL;
+
+	Uint32 lastMouseState = 0;
+
+	Light *l = new Light(vector2f(800, 600), 200, .6f);
+	w->lights.push_back(l);
 
 	//Start up SDL and create window
 	if (!init())
@@ -403,11 +467,17 @@ int main(int argc, char* args[])
 
 
 			//ts->handle(w->entities.at(0));
-
-
 			//Game control object
 			Game game(gRenderer);
+			game.fbo = new FrameBufferObject(SCREEN_WIDTH, SCREEN_HEIGHT, 2);	
 
+			m_Polygon *poly = new m_Polygon(5);
+			poly->setVertex(0, vector2f(100, 100));
+			poly->setVertex(1, vector2f(100, 200));
+			poly->setVertex(2, vector2f(200, 200));
+			poly->setVertex(3, vector2f(250, 150));
+			poly->setVertex(4, vector2f(200, 100));
+			w->polygons.push_back(poly);
 
 			//Test load map from TMX
 			printf("Map parser test info\n");
@@ -497,6 +567,7 @@ int main(int argc, char* args[])
 							ent->add(new ComponentType(LADDER));
 							ent->add(new ComponentSprite(gRenderer, "./res/spr/ladder.png", tw, th));
 							ent->add(new ComponentCollision{ tx, ty, tw, th, false });
+							ent->add(new ComponentSolid{ tx, ty, tsw, 4, true });
 							break;
 						}
 
@@ -614,9 +685,27 @@ int main(int argc, char* args[])
 				strcat_s(title, fps);
 				SDL_SetWindowTitle(gWindow, title);
 
+				//Move light around
+				int mx, my;
+				Uint32 mouse = SDL_GetMouseState(&mx, &my);
+				//std::cout << mx << ", " << my << "\n";
+				//When the mouse is clicked add a light
+				//Control the top light
+				if (w->lights.size() > 0)
+					w->lights[w->lights.size() - 1]->pos = vector2f(mx, my);
+				for (int i = 0; i < w->lights.size(); i++) {
+					w->lights[i]->tick();
+				}
+
 				//Handle events on queue
 				while (SDL_PollEvent(&e) != 0)
 				{
+					if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
+					{
+						//std::cout << "NEW LIGHT!\n";
+						//w->lights.push_back(new Light(vector2f(mx, my), 400, .8f));
+					}
+
 					if (e.type == SDL_KEYDOWN && e.key.repeat == 0)
 					{
 						if (e.key.keysym.sym == SDLK_ESCAPE)
@@ -713,12 +802,13 @@ int main(int argc, char* args[])
 				
 				//Make a reset method for this
 				cs->grounded = false;
-				cs->colLadder = false;
+				cs->belowLadder = false;
+				cs->aboveLadder = false;
 				cs->aboveSlope = false;
 
 				//game.step(w);
 				game.p.step();
-				
+
 				for (Entity* en : w->entities)
 				{
 					fs->handle(en);
@@ -730,7 +820,7 @@ int main(int argc, char* args[])
 				//game.p.moveRays();
 				game.p.moveRays();
 				cs->playerAboveSlope(&game.p, &w->entities);
-				
+
 
 				//game.p.ray1->cast(&w->entities);
 				//game.p.ray2->cast(&w->entities);
@@ -747,15 +837,40 @@ int main(int argc, char* args[])
 
 				/*if (cs->handle(w->entities.at(1), w->entities.at(5)))
 				{
-					int i = w->entities.at(5)->getComponentIndex<ComponentColor>();
-					if (i > -1)
-					{
-						w->entities.at(5)->components.erase(w->entities.at(5)->components.begin() + i);
-					}
+				int i = w->entities.at(5)->getComponentIndex<ComponentColor>();
+				if (i > -1)
+				{
+				w->entities.at(5)->components.erase(w->entities.at(5)->components.begin() + i);
+				}
 				}*/
 
 				/*RENDER BACKGROUND*/
 				back->render(gRenderer);
+
+				/*RENDER LIGHTING (Experimental, OpenGL. Render code must be changed to finish porting)*/
+				//glLoadIdentity();
+				//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				//rs->drawLighting(w, game.fbo);
+
+				////Draw the scene objects
+				//game.fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				//game.fbo->setRenderToTexture(0);
+				//glPushAttrib(GL_COLOR_BUFFER_BIT);
+				//glBlendFunc(GL_DST_COLOR, GL_DST_ALPHA); //Blends the scene objects very nicely with the color of the light
+
+				//glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+				//for (int i = 0; i < w->polygons.size(); i++) {
+				//	float cols[] = { 1.0f, 0.0f, .5f, 1.0f,
+				//		1.0f, 1.0f, .5f, 1.0f,
+				//		0.0f, 1.0f, 1.0f, 1.0f,
+				//		1.0f, 0.0f, .5f, 1.0f,
+				//		1.0f, 0.0f, .5f, 1.0f };
+				//	w->polygons[i]->draw(cols);
+				//}
+
+				//glPopAttrib();
+				//game.fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				//game.fbo->draw(0);
 
 				/*DEBUG HEIGHT TESTING*/
 				if (h)
@@ -782,13 +897,14 @@ int main(int argc, char* args[])
 						rs->drawStringSpr(8, 416 - (32 * i) - 12, std::to_string(32 * i));
 					}
 				}
-				SDL_Color red = SDL_Color{ 255, 0, 0, 255 };
-				std::string hp = "` ";
-				for (int i = 0; i < game.p.HP; i++)
-				{
-					hp.append("|");
-				}
-				rs->drawStringSprExt(4, 20, hp, &red);
+
+				//SDL_Color red = SDL_Color{ 255, 0, 0, 255 };
+				//std::string hp = "` ";
+				//for (int i = 0; i < game.p.HP; i++)
+				//{
+				//	hp.append("|");
+				//}
+				//rs->drawStringSprExt(4, 20, hp, &red);
 
 				//Update screen
 				SDL_SetRenderTarget(gRenderer, NULL);
@@ -796,7 +912,7 @@ int main(int argc, char* args[])
 				/*EXPERIMENTAL PIXEL DOUBLING! MAYBE IGNORE?*/
 				SDL_Point screenCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
 				//tRenderer.renderScaled(gRenderer, -SCREEN_WIDTH / 4, -SCREEN_HEIGHT / 4, SCREEN_WIDTH * 4, SCREEN_HEIGHT * 4);
-				tRenderer.renderScaled(gRenderer, 0, 0, SCREEN_WIDTH*2, SCREEN_HEIGHT*2);
+				tRenderer.renderScaled(gRenderer, 0, 0, SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2);
 
 				if (h)
 				{
@@ -875,9 +991,13 @@ int main(int argc, char* args[])
 					rs->drawStringSpr(12, 4, std::to_string(cam->x) + ", " + std::to_string(cam->y));
 				}
 
+				//SDL_GL_SwapWindow(gWindow);
 				SDL_RenderPresent(gRenderer);
 				SDL_SetRenderTarget(gRenderer, tRenderer.getTexture());
 				++countedFrames;
+				
+
+				lastMouseState = SDL_GetMouseState(NULL, NULL);
 			}
 		}
 	}
