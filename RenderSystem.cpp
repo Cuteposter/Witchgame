@@ -5,7 +5,8 @@ RenderSystem::RenderSystem(SDL_Renderer* r)
 {
 	renderer = r;
 
-	sprFontT.loadFromFile("./res/fnt/font.png", r);
+	//sprFontT.loadFromFile("./res/fnt/font.png", r);
+	sprFontT.loadFromFileGL("./res/fnt/font.png");
 
 	int w = 16;
 	int h = 16;
@@ -50,6 +51,43 @@ RenderSystem::~RenderSystem()
 	sprFontT.free();
 }
 
+void RenderSystem::drawSetColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+{
+	glColor4f((float)r/255.0, (float)g/255.0, (float)b/255.0, (float)a/255.0);
+}
+
+void RenderSystem::drawRect(SDL_Rect* rect)
+{
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_LINE_LOOP);
+	glVertex3f(rect->x, rect->y, 0);
+	glVertex3f(rect->x + rect->w-1, rect->y, 0);
+	glVertex3f(rect->x + rect->w-1, rect->y + rect->h-1, 0);
+	glVertex3f(rect->x, rect->y + rect->h-1, 0);
+	glEnd();
+}
+
+void RenderSystem::drawRectFilled(SDL_Rect* rect)
+{
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_QUADS);
+	glVertex3f(rect->x, rect->y, 0);
+	glVertex3f(rect->x + rect->w, rect->y, 0);
+	glVertex3f(rect->x + rect->w, rect->y + rect->h, 0);
+	glVertex3f(rect->x, rect->y + rect->h, 0);
+	glEnd();
+}
+
+void RenderSystem::drawLine(int x1, int y1, int x2, int y2)
+{
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_LINES);
+	glVertex3f(x1, y1, 0);
+	glVertex3f(x2, y2, 0);
+	glEnd();
+}
+
 void RenderSystem::drawStringSpr(int x, int y, std::string str)
 {
 	//std::cout << "String to draw char " << string << " at " << x << ", " << y << '\n' << "sprFont[" << string-32 << "]\n";
@@ -85,17 +123,21 @@ void RenderSystem::drawStringSpr(int x, int y, std::string str)
 		}
 
 		SDL_Rect* c = sprFont[cur - 32];
-		sprFontT.setColor(0x00, 0x00, 0x00);
-		sprFontT.setAlpha(128);
-		sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
+		//sprFontT.setColor(0x00, 0x00, 0x00);
+		//sprFontT.setAlpha(128);
+		//sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
+		drawSetColor(0x00, 0x00, 0x00, 0x80);
+		sprFontT.renderGL(x + (6 * i) - adjust + 1, y + wave + 1, c);
 		
-		sprFontT.setColor(0xFF, 0xFF, 0xFF);
-		sprFontT.setAlpha(255);
-		sprFontT.render(renderer, x + (6 * i) - adjust, y+wave, c);
+		//sprFontT.setColor(0xFF, 0xFF, 0xFF);
+		//sprFontT.setAlpha(255);
+		//sprFontT.render(renderer, x + (6 * i) - adjust, y + wave, c);
+		drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
+		sprFontT.renderGL(x + (6 * i) - adjust, y + wave, c);
 
-		wave = 3 * sin(i+warble);
+		wave = 0;//3 * sin(i+warble);
 	}
-	warble += 0.005;
+	//warble += 0.005;
 }
 
 void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* color)
@@ -131,15 +173,19 @@ void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* co
 		}
 
 		SDL_Rect* c = sprFont[cur - 32];
-		sprFontT.setColor(0x00, 0x00, 0x00);
-		sprFontT.setAlpha(128);
-		sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
+		//sprFontT.setColor(0x00, 0x00, 0x00);
+		//sprFontT.setAlpha(128);
+		//sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
+		drawSetColor(0x00, 0x00, 0x00, 0x80);
+		sprFontT.renderGL(x + (6 * i) - adjust + 1, y + wave + 1, c);
 
-		sprFontT.setColor(color->r, color->g, color->b);
-		sprFontT.setAlpha(color->a);
-		sprFontT.render(renderer, x + (6 * i) - adjust, y + wave, c);
+		//sprFontT.setColor(0xFF, 0xFF, 0xFF);
+		//sprFontT.setAlpha(255);
+		//sprFontT.render(renderer, x + (6 * i) - adjust, y + wave, c);
+		drawSetColor(color->r, color->g, color->b, color->a);
+		sprFontT.renderGL(x + (6 * i) - adjust, y + wave, c);
 
-		wave = 3 * sin(warble);
+		wave = 0;//3 * sin(warble);
 	}
 	warble += 0.005;
 }
@@ -229,12 +275,15 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 	ComponentEmitter* emitter = e->getComponent<ComponentEmitter>();
 	ComponentPosition* p = e->getComponent<ComponentPosition>();
 
+	drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
+
 	if (s != NULL && emitter == NULL)
 	{
 		SDL_Rect currentClip = s->gSpriteClips.at(s->frame / 10);
 
 		//sprite.render(r, x, y);
-		s->sprite.render(renderer, p->x - cam->x, p->y - cam->y, &currentClip);
+		//s->sprite.render(renderer, p->x - cam->x, p->y - cam->y, &currentClip);
+		s->sprite.renderGL(p->x - cam->x, p->y - cam->y, &currentClip);
 
 		//Go to next frame
 		s->frame++;
@@ -250,7 +299,8 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 	if (col != NULL)
 	{
 		SDL_Rect colrect = SDL_Rect{ col->rect.x - cam->x, col->rect.y - cam->y, col->rect.w, col->rect.h };
-		SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
+		//SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
+		drawSetColor(0xFF, 0x00, 0x00, 0xFF);
 		//SDL_RenderDrawRect(renderer, &colrect);
 	}
 
@@ -267,11 +317,12 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 	ComponentSolid* solid = e->getComponent<ComponentSolid>();
 	if (solid != NULL)
 	{
-		SDL_SetRenderDrawColor(renderer, 0x40, 0x40, 0x40, 0xFF);
+		//SDL_SetRenderDrawColor(renderer, 0x40, 0x40, 0x40, 0xFF);
+		drawSetColor(0x40, 0x40, 0x40, 0xFF);
 
 		ComponentColor* c = e->getComponent<ComponentColor>();
 		if (c != NULL)
-			SDL_SetRenderDrawColor(renderer, c->color.r, c->color.g, c->color.b, c->color.a);
+			drawSetColor(c->color.r, c->color.g, c->color.b, c->color.a); //SDL_SetRenderDrawColor(renderer, c->color.r, c->color.g, c->color.b, c->color.a);
 
 		SDL_Rect rect = solid->rect;
 		SDL_Rect drect = SDL_Rect{ rect.x - cam->x, rect.y - cam->y, rect.w, rect.h };
@@ -280,9 +331,9 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 		if (slope !=NULL)
 		{
 			if (slope->dir)
-				SDL_RenderDrawLine(renderer, drect.x, drect.y + drect.h, drect.x + drect.w, drect.y);
+				drawLine(drect.x, drect.y + drect.h, drect.x + drect.w, drect.y); //SDL_RenderDrawLine(renderer, drect.x, drect.y + drect.h, drect.x + drect.w, drect.y);
 			else
-				SDL_RenderDrawLine(renderer, drect.x, drect.y, drect.x + drect.w, drect.y + drect.h);
+				drawLine(drect.x, drect.y, drect.x + drect.w, drect.y + drect.h); //SDL_RenderDrawLine(renderer, drect.x, drect.y, drect.x + drect.w, drect.y + drect.h);
 
 			int x1 = rect.x;
 			int x2 = rect.x + rect.w;
@@ -320,13 +371,16 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 		{
 			SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 			if (solid->onlyTop)
-				SDL_SetRenderDrawColor(renderer, 0x80, 0x40, 0x40, 0x80);
+				drawSetColor(0x80, 0x40, 0x40, 0x80); //SDL_SetRenderDrawColor(renderer, 0x80, 0x40, 0x40, 0x80);
 
-			SDL_RenderFillRect(renderer, &drect);
+			//SDL_RenderFillRect(renderer, &drect);
+			drawSetColor(0x30, 0x30, 0x30, 0x80);
+			drawRectFilled(&drect);
 
-			SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+			//SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+			drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
 			if (solid->onlyTop)
-				SDL_RenderDrawLine(renderer, drect.x, drect.y, drect.x + drect.w-1, drect.y);
+				drawLine(drect.x, drect.y, drect.x + drect.w - 1, drect.y); //SDL_RenderDrawLine(renderer, drect.x, drect.y, drect.x + drect.w-1, drect.y);
 
 			if (solid->rect.w >= 32 && solid->rect.h >= 32)
 			{
@@ -337,7 +391,8 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 					{
 						r32.x = drect.x + i;
 						r32.y = drect.y + j;
-						SDL_RenderDrawRect(renderer, &r32);
+						//SDL_RenderDrawRect(renderer, &r32);
+						drawRect(&r32);
 					}
 				}
 			}
@@ -351,8 +406,8 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 		for (Particle* p : emitter->particles)
 		{
 			if (c != NULL)
-				p->render(renderer, cam, &(c->color));
-			else
+				drawSetColor(c->color.r, c->color.g, c->color.b, c->color.a); //p->render(renderer, cam, &(c->color));
+			//else
 				p->render(renderer, cam);
 		}
 	}

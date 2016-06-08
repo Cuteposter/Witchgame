@@ -73,6 +73,49 @@ bool LTexture::loadFromFile(std::string path, SDL_Renderer* gRenderer)
 	return mTexture != NULL;
 }
 
+bool LTexture::loadFromFileGL(std::string path)
+{
+	//Get rid of preexisting texture
+	free();
+
+	//Load image at specified path
+	SDL_Surface* loadedSurface = IMG_Load(path.c_str());
+	if (loadedSurface == NULL)
+	{
+		printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
+	}
+	else
+	{
+		//Get image dimensions
+		mWidth = loadedSurface->w;
+		mHeight = loadedSurface->h;
+
+		//Creature OpenGL texture from surface pixels
+		//glColor4f(1.0f, 1.0f, 0.0f, 0.0f);
+
+		glGenTextures(1, &TextureID);
+		glBindTexture(GL_TEXTURE_2D, TextureID);
+
+		int Mode = GL_RGB;
+
+		if (loadedSurface->format->BytesPerPixel == 4) {
+			Mode = GL_RGBA;
+		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0, Mode, loadedSurface->w, loadedSurface->h, 0, Mode, GL_UNSIGNED_BYTE, loadedSurface->pixels);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glBindTexture(GL_TEXTURE_2D, TextureID);
+
+		//Get rid of old loaded surface
+		SDL_FreeSurface(loadedSurface);
+	}
+
+	return true;
+}
+
 #ifdef _SDL_TTF_H
 bool LTexture::loadFromRenderedText(SDL_Renderer* gRenderer, TTF_Font* gFont, std::string textureText, SDL_Color textColor)
 {
@@ -156,12 +199,114 @@ void LTexture::render(SDL_Renderer* gRenderer, int x, int y, SDL_Rect* clip, dou
 	SDL_RenderCopyEx(gRenderer, mTexture, clip, &renderQuad, angle, center, flip);
 }
 
+void LTexture::renderGL(int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
+{
+	glEnable(GL_TEXTURE_2D);
+	int w, h;
+	float offset, offset2;
+
+	if (clip == NULL)
+	{
+		w = mWidth;
+		h = mHeight;
+		offset = 1.0f;
+		offset2 = 1.0f;
+	}
+	else
+	{
+		w = clip->w;
+		h = clip->h;
+		offset = float(clip->x) / float(mWidth);
+		offset2 = float(clip->y) / float(mHeight);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, TextureID);
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
+
+	if (flip == SDL_FLIP_HORIZONTAL)
+	{
+		glBegin(GL_QUADS);
+		glTexCoord2f((float(w) / float(mWidth) + offset), offset2); glVertex3f(x, y, 0);
+		glTexCoord2f(offset, offset2); glVertex3f(x + w, y, 0);
+		glTexCoord2f(offset, float(h) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+		glTexCoord2f((float(w) / float(mWidth) + offset), float(h) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+		glEnd();
+	}
+	else
+	{
+		glBegin(GL_QUADS);
+		glTexCoord2f(offset, offset2); glVertex3f(x, y, 0);
+		glTexCoord2f((float(w) / float(mWidth) + offset), offset2); glVertex3f(x + w, y, 0);
+		glTexCoord2f((float(w) / float(mWidth) + offset), float(h) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+		glTexCoord2f(offset, float(h) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+		glEnd();
+	}
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
+}
+
 void LTexture::renderScaled(SDL_Renderer* gRenderer, int x, int y, int w, int h, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
 {
 	SDL_Rect renderQuad = { x, y, w, h };
 	
 	//Render to screen
 	SDL_RenderCopyEx(gRenderer, mTexture, clip, &renderQuad, angle, center, flip);
+}
+
+void LTexture::renderScaledGL(int x, int y, int w, int h, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
+{
+	glEnable(GL_TEXTURE_2D);
+	int tw, th;
+	float offset, offset2;
+
+	if (clip == NULL)
+	{
+		tw = mWidth;
+		th = mHeight;
+		offset = 1.0f;
+		offset2 = 1.0f;
+	}
+	else
+	{
+		tw = clip->w;
+		th = clip->h;
+		offset = float(clip->x) / float(mWidth);
+		offset2 = float(clip->y) / float(mHeight);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, TextureID);
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
+
+	if (flip == SDL_FLIP_HORIZONTAL)
+	{
+		glBegin(GL_QUADS);
+		glTexCoord2f((float(tw) / float(mWidth) + offset), offset2); glVertex3f(x, y, 0);
+		glTexCoord2f(offset, offset2); glVertex3f(x + w, y, 0);
+		glTexCoord2f(offset, float(th) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+		glTexCoord2f((float(tw) / float(mWidth) + offset), float(th) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+		glEnd();
+	}
+	else
+	{
+		glBegin(GL_QUADS);
+		glTexCoord2f(offset, offset2); glVertex3f(x, y, 0);
+		glTexCoord2f((float(tw) / float(mWidth) + offset), offset2); glVertex3f(x + w, y, 0);
+		glTexCoord2f((float(tw) / float(mWidth) + offset), float(th) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+		glTexCoord2f(offset, float(th) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+		glEnd();
+	}
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
 }
 
 int LTexture::getWidth()
@@ -177,4 +322,9 @@ int LTexture::getHeight()
 SDL_Texture* LTexture::getTexture()
 {
 	return mTexture;
+}
+
+GLuint LTexture::getTextureID()
+{
+	return TextureID;
 }

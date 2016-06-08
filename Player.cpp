@@ -83,7 +83,8 @@ Player::~Player()
 
 bool Player::loadSprite(SDL_Renderer* r)
 {
-	if (!sprite.loadFromFile(spr_path, r))
+	//if (!sprite.loadFromFile(spr_path, r))
+	if (!sprite.loadFromFileGL(spr_path))
 	{
 		printf("Unable to load sprite %s!", spr_path);
 		return false;
@@ -646,7 +647,8 @@ void Player::render(SDL_Renderer* r, Camera* cam)
 
 			idle->update();
 			currentClip = idle->getFrame();	//&gSpriteClips[0];
-			sprite.render(r, x-8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
+			//sprite.render(r, x - 8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
+			sprite.renderGL(x - 8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
 		}
 
 		if (WALKING && !SHOOT)
@@ -656,19 +658,22 @@ void Player::render(SDL_Renderer* r, Camera* cam)
 
 			walk->update();
 			currentClip = walk->getFrame(); //&gSpriteClips[frame / 10];
-			sprite.render(r, x-8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
+			//sprite.render(r, x-8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
+			sprite.renderGL(x - 8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
 		}
 	}
 	else
 	{
 		currentClip = jmp->getFrame();
-		sprite.render(r, x-8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
+		//sprite.render(r, x-8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
+		sprite.renderGL(x - 8 - cam->x, y - cam->y, currentClip, 0.0, (SDL_Point*)0, flip);
 	}
 	
 	if (SHOOT)
 	{
 		SDL_Rect shoot = SDL_Rect{ 64, 0, 32, 64 };
-		sprite.render(r, x - cam->x, y - cam->y, &shoot, 0.0, (SDL_Point*)0, flip);
+		//sprite.render(r, x - cam->x, y - cam->y, &shoot, 0.0, (SDL_Point*)0, flip);
+		sprite.renderGL(x - cam->x, y - cam->y, &shoot, 0.0, (SDL_Point*)0, flip);
 	}
 
 	SDL_Rect rect;

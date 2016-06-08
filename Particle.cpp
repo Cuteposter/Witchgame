@@ -106,7 +106,11 @@ void Particle::render(SDL_Renderer* r, Camera* cam)
 	//sprite.render(r, x, y);
 	sprite->setColor(255, 192 - w * 2, 0);
 
-	sprite->renderScaled(r, x-cam->x, y-cam->y, w, h, &currentClip);
+	//sprite->renderScaled(r, x - cam->x, y - cam->y, w, h, &currentClip);
+	glPushAttrib(GL_COLOR_BUFFER_BIT);	//Save current blending function
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);	//Additive blending
+	sprite->renderScaledGL(x - cam->x, y - cam->y, w, h, &currentClip);
+	glPopAttrib();	//Restore blending function
 	//sprite.render(r, x, y, &currentClip, angle+180);
 
 	//Go to next frame
@@ -132,7 +136,12 @@ void Particle::render(SDL_Renderer* r, Camera* cam, SDL_Color* color)
 	sprite->setColor(255, 192 - w * 2, 0);
 	sprite->setColor(color->r, color->g, color->b);
 
-	sprite->renderScaled(r, x - cam->x, y - cam->y, w, h, &currentClip);
+	//sprite->renderScaled(r, x - cam->x, y - cam->y, w, h, &currentClip);
+
+	glPushAttrib(GL_COLOR_BUFFER_BIT);	//Save current blending function
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);	//Additive blending
+	sprite->renderScaledGL(x - cam->x, y - cam->y, w, h, &currentClip);
+	glPopAttrib();	//Restore blending function
 	//sprite.render(r, x, y, &currentClip, angle+180);
 
 	//Go to next frame

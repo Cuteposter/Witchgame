@@ -32,6 +32,8 @@
 #include "Solid.h"
 #include "Camera.h"
 
+#include "ShaderManager.h"
+#include "Shader.h"
 #include "FrameBufferObject.h"
 
 //ECS testing...
@@ -68,6 +70,9 @@ const int SCREEN_HEIGHT = 480;
 //Starts up SDL and creates window
 bool init();
 
+//OpenGL shit
+bool initGL();
+
 //Loads media
 bool loadMedia();
 
@@ -95,6 +100,10 @@ Mix_Music *gMusic = NULL;
 
 //OpenGL rendering context
 SDL_GLContext glcontext;
+
+/*TEST*/
+LTexture dummy;
+CShader* testshader = NULL;
 
 //Object pointers
 //Player p("./res/spr/witch.png");
@@ -145,31 +154,7 @@ bool init()
 				glewInit();
 
 				//Initialize OpenGL
-				//SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-				//glEnable(GL_DEPTH_TEST);
-				//glDepthFunc(GL_LEQUAL);
-
-				//glEnable(GL_TEXTURE_2D);
-				//glEnable(GL_BLEND);
-				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-				//glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-				//glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-				//glMatrixMode(GL_PROJECTION);
-				//glLoadIdentity();
-
-				//glOrtho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, -1.0f, 1.0f);
-
-				//glMatrixMode(GL_MODELVIEW);
-				//glLoadIdentity();
-
-				//glMatrixMode(GL_TEXTURE);
-				//glLoadIdentity();
-
-				//glDisable(GL_CULL_FACE);
+				initGL();
 
 
 				if (!tRenderer.createBlank(gRenderer, SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, SDL_TEXTUREACCESS_TARGET))
@@ -221,6 +206,70 @@ bool init()
 				}
 			}
 		}
+	}
+
+	return success;
+}
+
+bool initGL()
+{
+	//glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	//glMatrixMode(GL_PROJECTION);
+	//glLoadIdentity();
+
+	//glOrtho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, -1.0f, 1.0f);
+
+
+	bool success = true;
+	GLenum error = GL_NO_ERROR;
+
+	//Initialize Projection Matrix
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+
+	//Check for error
+	error = glGetError();
+	if (error != GL_NO_ERROR)
+	{
+		printf("Error initializing OpenGL! %s\n", gluErrorString(error));
+		success = false;
+	}
+
+	glOrtho(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, -1.0f, 1.0f);
+
+	//Initialize Modelview Matrix
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	//Check for error
+	error = glGetError();
+	if (error != GL_NO_ERROR)
+	{
+		printf("Error initializing OpenGL! %s\n", gluErrorString(error));
+		success = false;
+	}
+
+	//Initialize clear color
+	glClearColor(0.f, 0.f, 1.f, 1.f);
+	glEnable(GL_TEXTURE_2D);
+	glLoadIdentity();
+
+	//This enables using alpha channel
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//Alpha blending
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glLoadIdentity();
+
+	//Check for error
+	error = glGetError();
+	if (error != GL_NO_ERROR)
+	{
+		printf("Error initializing OpenGL! %s\n", gluErrorString(error));
+		success = false;
 	}
 
 	return success;
@@ -469,7 +518,8 @@ int main(int argc, char* args[])
 			//ts->handle(w->entities.at(0));
 			//Game control object
 			Game game(gRenderer);
-			game.fbo = new FrameBufferObject(SCREEN_WIDTH, SCREEN_HEIGHT, 2);	
+
+			game.fbo = new FrameBufferObject(1024, 1024, 5);
 
 			m_Polygon *poly = new m_Polygon(5);
 			poly->setVertex(0, vector2f(100, 100));
@@ -829,6 +879,9 @@ int main(int argc, char* args[])
 				SDL_SetRenderDrawColor(gRenderer, 0x40, 0x40, 0x40, 0xFF);
 				SDL_RenderClear(gRenderer);
 
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				rs->drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
+
 				/*UPDATE*/
 				//Camera
 				cam->update((int)game.p.x, (int)game.p.y);
@@ -887,6 +940,7 @@ int main(int argc, char* args[])
 					rs->handle(en, cam);
 				}
 
+				rs->drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
 				game.render(cam);
 
 				/*DEBUG HEIGHT TESTING*/
@@ -990,10 +1044,42 @@ int main(int argc, char* args[])
 					cam->render(gRenderer);
 					rs->drawStringSpr(12, 4, std::to_string(cam->x) + ", " + std::to_string(cam->y));
 				}
+				
+				if (dummy.getTextureID() == 0)
+				{
+					dummy.loadFromFileGL("./res/spr/cursor2.png");
+					std::cout << "LOADED\n";
+				}
+				SDL_Rect cliptest = SDL_Rect{0, 0, 96, 96};
 
-				//SDL_GL_SwapWindow(gWindow);
-				SDL_RenderPresent(gRenderer);
-				SDL_SetRenderTarget(gRenderer, tRenderer.getTexture());
+				//Shader test
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/passthrough.vert", "./shaders/blur.frag", NULL);
+
+				game.fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				game.fbo->setRenderToTexture(0);
+				//glPushAttrib(GL_COLOR_BUFFER_BIT);
+				//glBlendFunc(GL_DST_COLOR, GL_DST_ALPHA); //Blends the scene objects very nicely with the color of the light
+
+				dummy.renderGL(100, 100, &cliptest);
+
+				//glPopAttrib();
+				game.fbo->unsetRenderToTexture();
+
+				game.fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				game.fbo->draw(0);
+
+
+				//Shader test
+				//testshader = CShaderManager::GetInstance()->GetShader("./shaders/opacity.vert", "./shaders/opacity.frag", NULL);
+				//glUseProgram(testshader->GetProgram());
+				//glUniform1f(testshader->GetUniformIndex("texture"), dummy.getTextureID());
+				//glUniform1f(testshader->GetUniformIndex("opacity"), 0.5);
+				//dummy.renderGL(100, 100, &cliptest);
+				//glUseProgram(0);
+
+				SDL_GL_SwapWindow(gWindow);
+				//SDL_RenderPresent(gRenderer);
+				//SDL_SetRenderTarget(gRenderer, tRenderer.getTexture());
 				++countedFrames;
 				
 

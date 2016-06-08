@@ -4,6 +4,13 @@
 #include <SDL_image.h>
 #include <stdio.h>
 #include <string>
+
+#include <GL/glew.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#define NO_SDL_GLEXT
+#include <SDL_opengl.h>
+
 //Texture wrapper class
 class LTexture
 {
@@ -19,6 +26,7 @@ public:
 
 	//Loads image at specified path
 	bool loadFromFile(std::string path, SDL_Renderer* gRenderer);
+	bool loadFromFileGL(std::string path);
 
 #ifdef _SDL_TTF_H
 	//Creates image from font string
@@ -39,9 +47,12 @@ public:
 
 	//Renders texture at given point
 	void render(SDL_Renderer* r, int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
+	void renderGL(int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
+
 
 	//Renders texture at a given point with given dimensions
 	void renderScaled(SDL_Renderer* r, int x, int y, int w, int h, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
+	void renderScaledGL(int x, int y, int w, int h, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
 
 	//Gets image dimensions
 	int getWidth();
@@ -49,6 +60,7 @@ public:
 
 	//Sets texture as target, if it was created as a renderer targetable texture
 	SDL_Texture* getTexture();
+	GLuint getTextureID();
 
 private:
 	//The renderer that will render this texture to the screen
@@ -56,6 +68,9 @@ private:
 	
 	//The actual hardware texture
 	SDL_Texture* mTexture;
+
+	//OpenGL texture
+	GLuint TextureID = 0;
 
 	//Image dimensions
 	int mWidth;

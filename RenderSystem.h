@@ -30,6 +30,12 @@ public:
 	LTexture sprFontT;
 	SDL_Rect* sprFont[160];
 
+	/*Abstract some OpenGL shit for practicality sake*/
+	void drawSetColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+	void drawLine(int x1, int y1, int x2, int y2);
+	void drawRect(SDL_Rect* rect);
+	void drawRectFilled(SDL_Rect* rect);
+
 	//Stupid wavey text
 	double warble = 0;
 	double wave = 0;

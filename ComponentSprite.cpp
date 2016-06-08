@@ -2,7 +2,8 @@
 
 ComponentSprite::ComponentSprite(SDL_Renderer *r, char* path, int w, int h)
 {
-	bool success = sprite.loadFromFile(path, r);
+	//bool success = sprite.loadFromFile(path, r);
+	bool success = sprite.loadFromFileGL(path);
 	if (!success)
 		printf("Failed to load %s!\n", path);
 
