@@ -59,17 +59,23 @@ void FrameBufferObject::draw(int id) {
 	glEnable(GL_TEXTURE_2D);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
-	glTexCoord2i(0, 0);
-	glVertex2i(0, height);
+	//glTexCoord2i(0, 0);
+	//glVertex2i(0, height);
 
-	glTexCoord2i(1, 0);
-	glVertex2i(width, height);
+	//glTexCoord2i(1, 0);
+	//glVertex2i(width, height);
 
-	glTexCoord2i(1, 1);
-	glVertex2i(width, 0);
+	//glTexCoord2i(1, 1);
+	//glVertex2i(width, 0);
 
-	glTexCoord2i(0, 1);
-	glVertex2i(0, 0);
+	//glTexCoord2i(0, 1);
+	//glVertex2i(0, 0);
+
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
+	glTexCoord2f(1, 0); glVertex3f(width, 0, 0);
+	glTexCoord2f(1, 1); glVertex3f(width, height, 0);
+	glTexCoord2f(0, 1); glVertex3f(0, height, 0);
 	glEnd();
 	unbindTexture();
 }

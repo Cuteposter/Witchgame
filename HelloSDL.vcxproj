@@ -40,11 +40,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LibraryPath>C:\glew-1.13.0\lib\Release\Win32;C:\SDL2-2.0.3\SDL2_image-2.0.0\lib\x86;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Lib;C:\SDL2-2.0.3\SDL2_ttf-2.0.12\lib\x86;C:\SDL2-2.0.3\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Include;C:\glew-1.13.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\glm\;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Include;C:\glew-1.13.0\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LibraryPath>C:\glew-1.13.0\lib\Release\Win32;C:\SDL2-2.0.3\SDL2_image-2.0.0\lib\x86;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Lib;C:\SDL2-2.0.3\SDL2_ttf-2.0.12\lib\x86;C:\SDL2-2.0.3\SDL2_mixer-2.0.0\lib\x86;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Include;C:\glew-1.13.0\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\glm\;C:\Program Files %28x86%29\Microsoft SDKs\Windows\v7.1A\Include;C:\glew-1.13.0\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

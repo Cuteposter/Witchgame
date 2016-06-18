@@ -1,3 +1,7 @@
+#include <GL/glew.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+
 #include "Camera.h"
 
 Camera::Camera(int x, int y, int vx, int vy, int vw, int vh)
@@ -40,9 +44,19 @@ void Camera::update(int px, int py)
 
 void Camera::render(SDL_Renderer* r)
 {
-	SDL_SetRenderDrawColor(r, 255, 0, 0, 255);
-	SDL_Rect pos = { 0, 0, 8, 8 };
-	SDL_Rect v = { vx, vy, view.w, view.h };
-	SDL_RenderFillRect(r, &pos);
-	SDL_RenderDrawRect(r, &v);
+	//SDL_SetRenderDrawColor(r, 255, 0, 0, 255);
+	//SDL_Rect pos = { 0, 0, 8, 8 };
+	//SDL_Rect v = { vx, vy, view.w, view.h };
+	//SDL_RenderFillRect(r, &pos);
+	//SDL_RenderDrawRect(r, &v);
+
+	glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+	glDisable(GL_TEXTURE_2D);
+	glBegin(GL_LINE_LOOP);
+	glVertex3f(vx, vy, 0);
+	glVertex3f(vx + view.w - 1, vy, 0);
+	glVertex3f(vx + view.w - 1, vy + view.h - 1, 0);
+	glVertex3f(vx, vy + view.h- 1, 0);
+	glEnd();
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -9,6 +9,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <glm/vec2.hpp>
 #define NO_SDL_GLEXT
 #include <SDL_opengl.h>
 
@@ -519,7 +520,7 @@ int main(int argc, char* args[])
 			//Game control object
 			Game game(gRenderer);
 
-			game.fbo = new FrameBufferObject(1024, 1024, 5);
+			game.fbo = new FrameBufferObject(SCREEN_WIDTH, SCREEN_HEIGHT, 5);
 
 			m_Polygon *poly = new m_Polygon(5);
 			poly->setVertex(0, vector2f(100, 100));
@@ -578,7 +579,7 @@ int main(int argc, char* args[])
 					{
 						tmxparser::calculateTileCoordinatesUV(map.tilesetCollection[it.tilesetIndex], it.tileFlatIndex, 0.5f, true, rect);
 						//printf("Tileset[%u]@Tile[%u]=Rect( (%f, %f)->(%f, %f) )\n", it.tilesetIndex, it.tileFlatIndex, rect.u, rect.v, rect.u2, rect.v2);
-						printf("ID:%u, X:%d, Y:%d\n", it.tileFlatIndex, tx, ty);
+						//printf("ID:%u, X:%d, Y:%d\n", it.tileFlatIndex, tx, ty);
 						
 						switch (it.gid-1)
 						{
@@ -638,7 +639,7 @@ int main(int argc, char* args[])
 					{
 						//tmxparser::calculateTileCoordinatesUV(map.tilesetCollection[it.tilesetIndex], it.tileFlatIndex, 0.5f, true, rect);
 						//printf("Tileset[%u]@Tile[%u]=Rect( (%f, %f)->(%f, %f) )\n", it.tilesetIndex, it.tileFlatIndex, rect.u, rect.v, rect.u2, rect.v2);
-						printf("ID:%u, X:%d, Y:%d\n", obj.referenceGid, obj.x, obj.y);
+						//printf("ID:%u, X:%d, Y:%d\n", obj.referenceGid, obj.x, obj.y);
 
 						int ox = int(obj.x);
 						int oy = int(obj.y) - th;
@@ -898,6 +899,7 @@ int main(int argc, char* args[])
 				}*/
 
 				/*RENDER BACKGROUND*/
+
 				back->render(gRenderer);
 
 				/*RENDER LIGHTING (Experimental, OpenGL. Render code must be changed to finish porting)*/
@@ -939,9 +941,66 @@ int main(int argc, char* args[])
 				{
 					rs->handle(en, cam);
 				}
+				//game.fbo->unsetRenderToTexture();
 
 				rs->drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
+
+				//test FBO here
+				game.fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT);
+
+				glClearColor(0, 0, 0, 0);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				//Draw to secondary texture
+				game.fbo->setRenderToTexture(1);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ZERO);
+
+				//Draw the test
+				//game.render(cam);
+				
+				// Set up kernel weights and calculate texture offsets
+				const int KERNEL_SIZE = 9;
+				const float step_w = 1.0 / game.fbo->width;
+				const float step_h = 1.0 / game.fbo->height;
+
+				const GLfloat kernel_weights[KERNEL_SIZE] = {
+					1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0,
+					2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0,
+					1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0
+				};
+
+				const GLfloat texture_offsets[KERNEL_SIZE * 2] = {
+					-step_w, -step_h,
+					0.0, -step_h,
+					step_w, -step_h,
+					-step_w, 0.0,
+					0.0, 0.0,
+					step_w, 0.0,
+					-step_w, step_h,
+					0.0, step_h,
+					step_w, step_h
+				};
+
 				game.render(cam);
+
+				//Draw second texture to the first one
+				game.fbo->setRenderToTexture(0);
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/blur.vert", "./shaders/blur.frag", NULL);
+				glUseProgram(testshader->GetProgram());
+				glUniform1f(testshader->GetUniformIndex("sampler0"), game.p.sprite.getTextureID());
+				glUniform1fv(testshader->GetUniformIndex("kernel_weights"), 9, kernel_weights);
+				glUniform2fv(testshader->GetUniformIndex("texture_offsets"), 9, texture_offsets);
+				//glUniform2f(testshader->GetUniformIndex("dir"), 1.0f, 0.0f);
+				//glUniform1f(testshader->GetUniformIndex("radius"), 1.0f);
+				//glUniform1f(testshader->GetUniformIndex("opacity"), 0.5);
+				game.fbo->draw(1);
+				glUseProgram(0);
+				game.fbo->unsetRenderToTexture();
+				game.fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				glPopAttrib();
+				game.fbo->draw(0);
 
 				/*DEBUG HEIGHT TESTING*/
 				if (h)
@@ -961,7 +1020,7 @@ int main(int argc, char* args[])
 				//rs->drawStringSprExt(4, 20, hp, &red);
 
 				//Update screen
-				SDL_SetRenderTarget(gRenderer, NULL);
+				//SDL_SetRenderTarget(gRenderer, NULL);
 
 				/*EXPERIMENTAL PIXEL DOUBLING! MAYBE IGNORE?*/
 				SDL_Point screenCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
@@ -1045,29 +1104,6 @@ int main(int argc, char* args[])
 					rs->drawStringSpr(12, 4, std::to_string(cam->x) + ", " + std::to_string(cam->y));
 				}
 				
-				if (dummy.getTextureID() == 0)
-				{
-					dummy.loadFromFileGL("./res/spr/cursor2.png");
-					std::cout << "LOADED\n";
-				}
-				SDL_Rect cliptest = SDL_Rect{0, 0, 96, 96};
-
-				//Shader test
-				testshader = CShaderManager::GetInstance()->GetShader("./shaders/passthrough.vert", "./shaders/blur.frag", NULL);
-
-				game.fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
-				game.fbo->setRenderToTexture(0);
-				//glPushAttrib(GL_COLOR_BUFFER_BIT);
-				//glBlendFunc(GL_DST_COLOR, GL_DST_ALPHA); //Blends the scene objects very nicely with the color of the light
-
-				dummy.renderGL(100, 100, &cliptest);
-
-				//glPopAttrib();
-				game.fbo->unsetRenderToTexture();
-
-				game.fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
-				game.fbo->draw(0);
-
 
 				//Shader test
 				//testshader = CShaderManager::GetInstance()->GetShader("./shaders/opacity.vert", "./shaders/opacity.frag", NULL);
@@ -1076,6 +1112,14 @@ int main(int argc, char* args[])
 				//glUniform1f(testshader->GetUniformIndex("opacity"), 0.5);
 				//dummy.renderGL(100, 100, &cliptest);
 				//glUseProgram(0);
+
+				//if (dummy.getTextureID() == 0)
+				//{
+				//	dummy.loadFromFileGL("./res/spr/cursor2.png");
+				//	std::cout << "LOADED\n";
+				//}
+				//SDL_Rect cliptest = SDL_Rect{ 0, 0, 96, 80 };
+				
 
 				SDL_GL_SwapWindow(gWindow);
 				//SDL_RenderPresent(gRenderer);

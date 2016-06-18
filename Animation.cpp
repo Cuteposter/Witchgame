@@ -49,7 +49,7 @@ void Animation::update()
 		//std::cout << "tick = " << tick << "\nframe = " << frame << "\nframe timing = " << timing.at(frame) << '\n';
 		if (tick >= timing.at(frame))
 		{
-			std::cout << frame << '\n';
+			//std::cout << frame << '\n';
 			tick = 0;
 
 			if (control.at(frame) != -1)
