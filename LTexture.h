@@ -4,6 +4,7 @@
 #include <SDL_image.h>
 #include <stdio.h>
 #include <string>
+#include <vector>
 
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -54,6 +55,10 @@ public:
 	void renderScaled(SDL_Renderer* r, int x, int y, int w, int h, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
 	void renderScaledGL(int x, int y, int w, int h, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
 
+	//Move about the vertices we will pass to the GPU for batch rendering
+	void updateVertices(int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
+	void updateVerticesScaled(int x, int y, int w, int h, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE);
+
 	//Gets image dimensions
 	int getWidth();
 	int getHeight();
@@ -61,16 +66,22 @@ public:
 	//Sets texture as target, if it was created as a renderer targetable texture
 	SDL_Texture* getTexture();
 	GLuint getTextureID();
+	
+	std::vector<GLfloat> vertices;
+	std::vector<GLfloat> in_vertices;
+	std::vector<GLuint> indices;
 
 private:
 	//The renderer that will render this texture to the screen
 	SDL_Renderer* gRenderer;
+
+	GLuint VBO, VAO, EBO;
 	
 	//The actual hardware texture
 	SDL_Texture* mTexture;
 
 	//OpenGL texture
-	GLuint TextureID = 0;
+	GLuint TextureID;
 
 	//Image dimensions
 	int mWidth;

@@ -317,7 +317,7 @@ bool CollisionSystem::collidesWithPlayer(Player* p, Entity* e)
 
 	//p->setGround(grounded);
 	//if (!p->ground)
-		//p->sdir = 0;
+	//p->sdir = 0;
 
 	return false;
 }
@@ -406,10 +406,10 @@ bool CollisionSystem::playerOnSlope(Player* p, Entity* e)
 				//if (feet > ny)
 				//{
 				if (p->sdir == 0)
-				//{
-				//if (SDL_IntersectRectAndLine(&colFeet, &x1, &y1, &x2, &y2))
+					//{
+					//if (SDL_IntersectRectAndLine(&colFeet, &x1, &y1, &x2, &y2))
 					p->y = ny - 64;
-					//std::cout << "Moving feet to " << ny << '\n';
+				//std::cout << "Moving feet to " << ny << '\n';
 				//}
 				//}
 				//}
@@ -435,10 +435,10 @@ bool CollisionSystem::playerOnSlope(Player* p, Entity* e)
 				//if (feet > ny)
 				//{
 				if (p->sdir == 0)
-				//{
-				//if (SDL_IntersectRectAndLine(&colFeet, &x1, &y1, &x2, &y2))
+					//{
+					//if (SDL_IntersectRectAndLine(&colFeet, &x1, &y1, &x2, &y2))
 					p->y = ny - 64;
-					//std::cout << "Moving feet to " << ny - 63 << '\n';
+				//std::cout << "Moving feet to " << ny - 63 << '\n';
 				//}
 				//}
 				//}
@@ -545,7 +545,7 @@ bool CollisionSystem::playerAboveSlope(Player* p, std::vector<Entity*>* list)
 		}
 	}
 
-	
+
 	if (!aboveSlope || !grounded)
 		p->onSlope = false;
 
@@ -585,17 +585,17 @@ void CollisionSystem::playerSetSlope(Player* p, Ray* r, Entity* e)
 	else
 		b = rect.y;
 
-	SDL_Rect ray = SDL_Rect{ r->x1, r->y1, 1, r->y2+1 };	//Change 9999 to level bound maybe
+	SDL_Rect ray = SDL_Rect{ r->x1, r->y1, 1, r->y2 + 1 };	//Change 9999 to level bound maybe
 	//std::cout << "Trying to snap...\n";
 	if (SDL_IntersectRectAndLine(&ray, &x1, &y1, &x2, &y2))
 	{
 		/*int i = e->getComponentIndex<ComponentColor>();
 		if (i == -1)
-			e->add(new ComponentColor{ 0xFF, 0x00, 0x00, 0xFF });*/
+		e->add(new ComponentColor{ 0xFF, 0x00, 0x00, 0xFF });*/
 
 		//if (p->yp != p->y)
-			p->y = r->y2 - 64;//ny - 64;
-			//std::cout << "Snapped!\n";
+		p->y = r->y2 - 64;//ny - 64;
+		//std::cout << "Snapped!\n";
 		grounded = true;
 	}
 

@@ -14,11 +14,13 @@ class ComponentSprite :
 	public Component
 {
 public:
-	ComponentSprite(SDL_Renderer *r, char* path, int w, int h);
+	ComponentSprite(SDL_Renderer *r, char* path, int w, int h, float scale=1.0f, bool glow=false);
 	~ComponentSprite();
 	
 	LTexture sprite;
 	LTexture gSpriteSheetTexture;
+	float scale;
+	bool glow;
 	int frame;
 	int ANIMATION_FRAMES;
 	std::vector<SDL_Rect> gSpriteClips;

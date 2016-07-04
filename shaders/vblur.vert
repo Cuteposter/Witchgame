@@ -1,26 +1,23 @@
-/* VBlurVertexShader.glsl */
-attribute vec4 a_position;
-attribute vec2 a_texCoord;
- 
-varying vec2 v_texCoord;
-varying vec2 v_blurTexCoords[14];
- 
-void main()
-{
-    gl_Position = a_position;
-    v_texCoord = a_texCoord;
-    v_blurTexCoords[ 0] = v_texCoord + vec2(0.0, -0.028);
-    v_blurTexCoords[ 1] = v_texCoord + vec2(0.0, -0.024);
-    v_blurTexCoords[ 2] = v_texCoord + vec2(0.0, -0.020);
-    v_blurTexCoords[ 3] = v_texCoord + vec2(0.0, -0.016);
-    v_blurTexCoords[ 4] = v_texCoord + vec2(0.0, -0.012);
-    v_blurTexCoords[ 5] = v_texCoord + vec2(0.0, -0.008);
-    v_blurTexCoords[ 6] = v_texCoord + vec2(0.0, -0.004);
-    v_blurTexCoords[ 7] = v_texCoord + vec2(0.0,  0.004);
-    v_blurTexCoords[ 8] = v_texCoord + vec2(0.0,  0.008);
-    v_blurTexCoords[ 9] = v_texCoord + vec2(0.0,  0.012);
-    v_blurTexCoords[10] = v_texCoord + vec2(0.0,  0.016);
-    v_blurTexCoords[11] = v_texCoord + vec2(0.0,  0.020);
-    v_blurTexCoords[12] = v_texCoord + vec2(0.0,  0.024);
-    v_blurTexCoords[13] = v_texCoord + vec2(0.0,  0.028);
+#version 330
+
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 color;
+layout (location = 2) in vec2 texCoord;
+
+out vec2 blurTextureCoords[11];
+
+uniform float targetHeight;
+uniform mat4 projmat;
+uniform mat4 modelmat;
+uniform mat4 orthomat;
+
+void main(void){
+	gl_Position = vec4(position.x-320, 1.0-position.y+240, 0.0, 1.0);
+	vec2 centerTexCoords = vec2(position.x, 1.0-position.y) * 0.5 + 0.5;
+	float pixelSize = 1.0 / targetHeight;
+	
+	for(int i=-5;i<=5;i++)
+	{
+		blurTextureCoords[i+5] = centerTexCoords + vec2(0.0, pixelSize * i);
+	}
 }

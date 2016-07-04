@@ -86,12 +86,39 @@ bool LTexture::loadFromFileGL(std::string path)
 	}
 	else
 	{
+		printf("Loading... %s\n", path.c_str());
 		//Get image dimensions
 		mWidth = loadedSurface->w;
 		mHeight = loadedSurface->h;
 
 		//Creature OpenGL texture from surface pixels
 		//glColor4f(1.0f, 1.0f, 0.0f, 0.0f);
+
+		glGenVertexArrays(1, &VAO);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &EBO);
+
+		vertices = {
+			// Positions          // Colors           // Texture Coords
+			(float)mWidth, 0, 0.0f, 1.0f, 0.0f, 0.0f, 1, 1, // Top Right
+			(float)mWidth, (float)mHeight, 0.0f, 0.0f, 1.0f, 0.0f, 1, 0,	// Bottom Right
+			0, (float)mHeight, 0.0f, 0.0f, 0.0f, 1.0f, 0, 0, // Bottom Left
+			0, 0, 0.0f, 1.0f, 1.0f, 0.0f, 0, 1  // Top Left 
+		};
+
+		in_vertices = {
+			// Positions          // Colors           // Texture Coords
+			(float)mWidth, 0, 0.0f, 1.0f, 0.0f, 0.0f, 1, 1, // Top Right
+			(float)mWidth, (float)mHeight, 0.0f, 0.0f, 1.0f, 0.0f, 1, 0,	// Bottom Right
+			0, (float)mHeight, 0.0f, 0.0f, 0.0f, 1.0f, 0, 0, // Bottom Left
+			0, 0, 0.0f, 1.0f, 1.0f, 0.0f, 0, 1  // Top Left 
+		};
+
+		indices = {  // Note that we start from 0!
+			0, 1, 3, // First Triangle
+			1, 2, 3  // Second Triangle
+		};
+
 
 		glGenTextures(1, &TextureID);
 		glBindTexture(GL_TEXTURE_2D, TextureID);
@@ -107,7 +134,11 @@ bool LTexture::loadFromFileGL(std::string path)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
 		glBindTexture(GL_TEXTURE_2D, TextureID);
+		printf("Made texture ID: %d\n", TextureID);
 
 		//Get rid of old loaded surface
 		SDL_FreeSurface(loadedSurface);
@@ -202,7 +233,9 @@ void LTexture::render(SDL_Renderer* gRenderer, int x, int y, SDL_Rect* clip, dou
 void LTexture::renderGL(int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
 {
 	glEnable(GL_TEXTURE_2D);
-	int w, h;
+	float fx = x;
+	float fy = y;
+	float w, h;
 	float offset, offset2;
 
 	if (clip == NULL)
@@ -217,7 +250,7 @@ void LTexture::renderGL(int x, int y, SDL_Rect* clip, double angle, SDL_Point* c
 		w = clip->w;
 		h = clip->h;
 		offset = float(clip->x) / float(mWidth);
-		offset2 = float(clip->y) / float(mHeight);
+		offset2 = 1.0f - (float(clip->y) / float(mHeight));
 	}
 
 	glBindTexture(GL_TEXTURE_2D, TextureID);
@@ -225,25 +258,74 @@ void LTexture::renderGL(int x, int y, SDL_Rect* clip, double angle, SDL_Point* c
 	//glTranslatef(x, y, 0);
 	//glRotatef(angle, 0, 0, 1);
 	//glTranslatef(-x, -y, 0);
+	
+	// Set up vertex data (and buffer(s)) and attribute pointers
+	vertices = {
+		// Positions          // Colors           // Texture Coords
+		fx + w, fy, 0.0f, 1.0f, 0.0f, 0.0f, (float(w) / float(mWidth) + offset), offset2, // Top Right
+		fx + w, fy + h, 0.0f, 0.0f, 1.0f, 0.0f, (float(w) / float(mWidth) + offset), offset2 - (float(h) / float(mHeight)),	// Bottom Right
+		fx, fy + h, 0.0f, 0.0f, 0.0f, 1.0f, offset, offset2 - (float(h) / float(mHeight)), // Bottom Left
+		fx, fy, 0.0f, 1.0f, 1.0f, 0.0f, offset, offset2  // Top Left 
+	};
 
+	in_vertices = {
+		// Positions          // Colors           // Texture Coords
+		fx + w, fy, 0.0f, 1.0f, 0.0f, 0.0f, offset, offset2, // Top Right
+		fx + w, fy + h, 0.0f, 0.0f, 1.0f, 0.0f, offset, offset2 - (float(h) / float(mHeight)),// Bottom Right
+		fx, fy + h, 0.0f, 0.0f, 0.0f, 1.0f, (float(w) / float(mWidth) + offset), offset2 - (float(h) / float(mHeight)), // Bottom Left
+		fx, fy, 0.0f, 1.0f, 1.0f, 0.0f, (float(w) / float(mWidth) + offset), offset2 // Top Left 
+	};
+
+	indices = {  // Note that we start from 0!
+		0, 1, 3, // First Triangle
+		1, 2, 3  // Second Triangle
+	};
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	if (flip == SDL_FLIP_HORIZONTAL)
-	{
-		glBegin(GL_QUADS);
-		glTexCoord2f((float(w) / float(mWidth) + offset), offset2); glVertex3f(x, y, 0);
-		glTexCoord2f(offset, offset2); glVertex3f(x + w, y, 0);
-		glTexCoord2f(offset, float(h) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
-		glTexCoord2f((float(w) / float(mWidth) + offset), float(h) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
-		glEnd();
-	}
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*in_vertices.size() , &in_vertices[0], GL_STATIC_DRAW);
 	else
-	{
-		glBegin(GL_QUADS);
-		glTexCoord2f(offset, offset2); glVertex3f(x, y, 0);
-		glTexCoord2f((float(w) / float(mWidth) + offset), offset2); glVertex3f(x + w, y, 0);
-		glTexCoord2f((float(w) / float(mWidth) + offset), float(h) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
-		glTexCoord2f(offset, float(h) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
-		glEnd();
-	}
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*vertices.size(), &vertices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*indices.size(), &indices[0], GL_STATIC_DRAW);
+
+	// Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	// Color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+	// TexCoord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(0); // Unbind VAO
+
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+
+	//if (flip == SDL_FLIP_HORIZONTAL)
+	//{
+	//	glBegin(GL_QUADS);
+	//	glTexCoord2f((float(w) / float(mWidth) + offset), offset2); glVertex3f(x, y, 0);
+	//	glTexCoord2f(offset, offset2); glVertex3f(x + w, y, 0);
+	//	glTexCoord2f(offset, float(h) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+	//	glTexCoord2f((float(w) / float(mWidth) + offset), float(h) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+	//	glEnd();
+	//}
+	//else
+	//{
+	//	glBegin(GL_QUADS);
+	//	glTexCoord2f(offset, offset2); glVertex3f(x, y, 0);
+	//	glTexCoord2f((float(w) / float(mWidth) + offset), offset2); glVertex3f(x + w, y, 0);
+	//	glTexCoord2f((float(w) / float(mWidth) + offset), float(h) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+	//	glTexCoord2f(offset, float(h) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+	//	glEnd();
+	//}
 
 	//glTranslatef(x, y, 0);
 	//glRotatef(angle, 0, 0, 1);
@@ -268,7 +350,7 @@ void LTexture::renderScaledGL(int x, int y, int w, int h, SDL_Rect* clip, double
 	{
 		tw = mWidth;
 		th = mHeight;
-		offset = 1.0f;
+		offset = 0.0f;
 		offset2 = 1.0f;
 	}
 	else
@@ -276,7 +358,7 @@ void LTexture::renderScaledGL(int x, int y, int w, int h, SDL_Rect* clip, double
 		tw = clip->w;
 		th = clip->h;
 		offset = float(clip->x) / float(mWidth);
-		offset2 = float(clip->y) / float(mHeight);
+		offset2 = 1.0f - (float(clip->y) / float(mHeight));
 	}
 
 	glBindTexture(GL_TEXTURE_2D, TextureID);
@@ -284,25 +366,213 @@ void LTexture::renderScaledGL(int x, int y, int w, int h, SDL_Rect* clip, double
 	//glTranslatef(x, y, 0);
 	//glRotatef(angle, 0, 0, 1);
 	//glTranslatef(-x, -y, 0);
+	
+	GLfloat vertices[] = {
+		// Positions          // Colors           // Texture Coords
+		x + w, y, 0.0f, 1.0f, 0.0f, 0.0f, (float(tw) / float(mWidth) + offset), offset2, // Top Right
+		x + w, y + h, 0.0f, 0.0f, 1.0f, 0.0f, (float(tw) / float(mWidth) + offset), offset2 - (float(th) / float(mHeight)),	// Bottom Right
+		x, y + h, 0.0f, 0.0f, 0.0f, 1.0f, offset, offset2 - (float(th) / float(mHeight)), // Bottom Left
+		x, y, 0.0f, 1.0f, 1.0f, 0.0f, offset, offset2  // Top Left 
+	};
 
+	GLfloat in_vertices[] = {
+		// Positions          // Colors           // Texture Coords
+		x + w, y, 0.0f, 1.0f, 0.0f, 0.0f, offset, offset2, // Top Right
+		x + w, y + h, 0.0f, 0.0f, 1.0f, 0.0f, offset, offset2 - (float(th) / float(mHeight)),// Bottom Right
+		x, y + h, 0.0f, 0.0f, 0.0f, 1.0f, (float(tw) / float(mWidth) + offset), offset2 - (float(th) / float(mHeight)), // Bottom Left
+		x, y, 0.0f, 1.0f, 1.0f, 0.0f, (float(tw) / float(mWidth) + offset), offset2  // Top Left 
+	};
+
+	GLuint indices[] = {  // Note that we start from 0!
+		0, 1, 3, // First Triangle
+		1, 2, 3  // Second Triangle
+	};
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	if (flip == SDL_FLIP_HORIZONTAL)
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), in_vertices, GL_STATIC_DRAW);
+	else
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	// Color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+	// TexCoord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(0); // Unbind VAO
+
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+
+	//if (flip == SDL_FLIP_HORIZONTAL)
+	//{
+	//	glBegin(GL_QUADS);
+	//	glTexCoord2f((float(tw) / float(mWidth) + offset), offset2); glVertex3f(x, y, 0);
+	//	glTexCoord2f(offset, offset2); glVertex3f(x + w, y, 0);
+	//	glTexCoord2f(offset, float(th) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+	//	glTexCoord2f((float(tw) / float(mWidth) + offset), float(th) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+	//	glEnd();
+	//}
+	//else
+	//{
+	//	glBegin(GL_QUADS);
+	//	glTexCoord2f(offset, offset2); glVertex3f(x, y, 0);
+	//	glTexCoord2f((float(tw) / float(mWidth) + offset), offset2); glVertex3f(x + w, y, 0);
+	//	glTexCoord2f((float(tw) / float(mWidth) + offset), float(th) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
+	//	glTexCoord2f(offset, float(th) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
+	//	glEnd();
+	//}
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
+}
+
+void LTexture::updateVertices(int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
+{
+	float fx = x;
+	float fy = y;
+	float w, h;
+	float offset, offset2;
+
+	if (clip == NULL)
 	{
-		glBegin(GL_QUADS);
-		glTexCoord2f((float(tw) / float(mWidth) + offset), offset2); glVertex3f(x, y, 0);
-		glTexCoord2f(offset, offset2); glVertex3f(x + w, y, 0);
-		glTexCoord2f(offset, float(th) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
-		glTexCoord2f((float(tw) / float(mWidth) + offset), float(th) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
-		glEnd();
+		w = mWidth;
+		h = mHeight;
+		offset = 1.0f;
+		offset2 = 1.0f;
 	}
 	else
 	{
-		glBegin(GL_QUADS);
-		glTexCoord2f(offset, offset2); glVertex3f(x, y, 0);
-		glTexCoord2f((float(tw) / float(mWidth) + offset), offset2); glVertex3f(x + w, y, 0);
-		glTexCoord2f((float(tw) / float(mWidth) + offset), float(th) / float(mHeight) + offset2); glVertex3f(x + w, y + h, 0);
-		glTexCoord2f(offset, float(th) / float(mHeight) + offset2); glVertex3f(x, y + h, 0);
-		glEnd();
+		w = clip->w;
+		h = clip->h;
+		offset = float(clip->x) / float(mWidth);
+		offset2 = 1.0f - (float(clip->y) / float(mHeight));
 	}
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
+
+	// Set up vertex data (and buffer(s)) and attribute pointers
+	vertices = {
+		// Positions          // Colors           // Texture Coords
+		fx + w, fy, 0.0f, 1.0f, 0.0f, 0.0f, (float(w) / float(mWidth) + offset), offset2, // Top Right
+		fx + w, fy + h, 0.0f, 0.0f, 1.0f, 0.0f, (float(w) / float(mWidth) + offset), offset2 - (float(h) / float(mHeight)),	// Bottom Right
+		fx, fy + h, 0.0f, 0.0f, 0.0f, 1.0f, offset, offset2 - (float(h) / float(mHeight)), // Bottom Left
+		fx, fy, 0.0f, 1.0f, 1.0f, 0.0f, offset, offset2  // Top Left 
+	};
+
+	in_vertices = {
+		// Positions          // Colors           // Texture Coords
+		fx + w, fy, 0.0f, 1.0f, 0.0f, 0.0f, offset, offset2, // Top Right
+		fx + w, fy + h, 0.0f, 0.0f, 1.0f, 0.0f, offset, offset2 - (float(h) / float(mHeight)),// Bottom Right
+		fx, fy + h, 0.0f, 0.0f, 0.0f, 1.0f, (float(w) / float(mWidth) + offset), offset2 - (float(h) / float(mHeight)), // Bottom Left
+		fx, fy, 0.0f, 1.0f, 1.0f, 0.0f, (float(w) / float(mWidth) + offset), offset2 // Top Left 
+	};
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	if (flip == SDL_FLIP_HORIZONTAL)
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*in_vertices.size(), &in_vertices[0], GL_STATIC_DRAW);
+	else
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*vertices.size(), &vertices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*indices.size(), &indices[0], GL_STATIC_DRAW);
+
+	// Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	// Color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+	// TexCoord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(0); // Unbind VAO
+}
+
+void LTexture::updateVerticesScaled(int x, int y, int w, int h, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
+{
+	int tw, th;
+	float offset, offset2;
+
+	if (clip == NULL)
+	{
+		tw = mWidth;
+		th = mHeight;
+		offset = 0.0f;
+		offset2 = 1.0f;
+	}
+	else
+	{
+		tw = clip->w;
+		th = clip->h;
+		offset = float(clip->x) / float(mWidth);
+		offset2 = 1.0f - (float(clip->y) / float(mHeight));
+	}
+
+	//glTranslatef(x, y, 0);
+	//glRotatef(angle, 0, 0, 1);
+	//glTranslatef(-x, -y, 0);
+
+	GLfloat vertices[] = {
+		// Positions          // Colors           // Texture Coords
+		x + w, y, 0.0f, 1.0f, 0.0f, 0.0f, (float(tw) / float(mWidth) + offset), offset2, // Top Right
+		x + w, y + h, 0.0f, 0.0f, 1.0f, 0.0f, (float(tw) / float(mWidth) + offset), offset2 - (float(th) / float(mHeight)),	// Bottom Right
+		x, y + h, 0.0f, 0.0f, 0.0f, 1.0f, offset, offset2 - (float(th) / float(mHeight)), // Bottom Left
+		x, y, 0.0f, 1.0f, 1.0f, 0.0f, offset, offset2  // Top Left 
+	};
+
+	GLfloat in_vertices[] = {
+		// Positions          // Colors           // Texture Coords
+		x + w, y, 0.0f, 1.0f, 0.0f, 0.0f, offset, offset2, // Top Right
+		x + w, y + h, 0.0f, 0.0f, 1.0f, 0.0f, offset, offset2 - (float(th) / float(mHeight)),// Bottom Right
+		x, y + h, 0.0f, 0.0f, 0.0f, 1.0f, (float(tw) / float(mWidth) + offset), offset2 - (float(th) / float(mHeight)), // Bottom Left
+		x, y, 0.0f, 1.0f, 1.0f, 0.0f, (float(tw) / float(mWidth) + offset), offset2  // Top Left 
+	};
+
+	GLuint indices[] = {  // Note that we start from 0!
+		0, 1, 3, // First Triangle
+		1, 2, 3  // Second Triangle
+	};
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	if (flip == SDL_FLIP_HORIZONTAL)
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), in_vertices, GL_STATIC_DRAW);
+	else
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	// Color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+	// TexCoord attribute
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
+
+	glBindVertexArray(0); // Unbind VAO
 
 	//glTranslatef(x, y, 0);
 	//glRotatef(angle, 0, 0, 1);

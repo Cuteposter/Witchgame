@@ -154,7 +154,7 @@ CShader* CShaderManager::Load(const char* inVertexFilename, const char* inFragme
 		theResult->SetFragShader(fragShader);
 		theResult->SetGeomShader(geomShader);
 		theResult->SetProgram(programShader);
-		printf("Successfully loaded/linked shader program!\n");
+		printf("Successfully loaded/linked shader program! %s %s\n", inVertexFilename, inFragmentFilename);
 
 		return theResult;
 	}

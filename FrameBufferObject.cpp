@@ -54,11 +54,10 @@ FrameBufferObject::~FrameBufferObject() {
 }
 
 void FrameBufferObject::draw(int id) {
-	bindTexture(id);
-
 	glEnable(GL_TEXTURE_2D);
+	//bindTexture(id);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glBegin(GL_QUADS);
+	//glBegin(GL_QUADS);
 	//glTexCoord2i(0, 0);
 	//glVertex2i(0, height);
 
@@ -70,13 +69,77 @@ void FrameBufferObject::draw(int id) {
 
 	//glTexCoord2i(0, 1);
 	//glVertex2i(0, 0);
+	
+	//glMatrixMode(GL_PROJECTION);
+	//glLoadIdentity();
+	//glOrtho(0.0, width, height, 0.0, -1.0, 1.0);
+	//glMatrixMode(GL_MODELVIEW);
+	//glLoadIdentity();
 
-	glBegin(GL_QUADS);
-	glTexCoord2f(0, 0); glVertex3f(0, 0, 0);
-	glTexCoord2f(1, 0); glVertex3f(width, 0, 0);
-	glTexCoord2f(1, 1); glVertex3f(width, height, 0);
-	glTexCoord2f(0, 1); glVertex3f(0, height, 0);
-	glEnd();
+	//glBegin(GL_QUADS);
+	////glVertexAttrib2f(0, -1, -1);
+	//glTexCoord2f(0, 0); glVertex2f(0, 0);
+	//glTexCoord2f(1, 0); glVertex2f(width, 0);
+	//glTexCoord2f(1, 1); glVertex2f(width, height);
+	//glTexCoord2f(0, 1); glVertex2f(0, height);
+	//glEnd();
+
+	//glBegin(GL_TRIANGLE_STRIP);
+	////glVertexAttrib2f(0, -1, -1);
+	//glTexCoord2f(0, 1); glVertex2f(0, 0);
+	//glTexCoord2f(0, 0); glVertex2f(0, height);
+	//glTexCoord2f(1, 1); glVertex2f(width, 0);
+	//glTexCoord2f(1, 0); glVertex2f(width, height);
+	//glEnd();
+
+	//TODO: This should be how it's done. Fix it.
+	if (quadVAO == 0)
+	{
+		// Set up vertex data (and buffer(s)) and attribute pointers
+		GLfloat vertices[] = {
+			// Positions          // Colors           // Texture Coords
+			width, 0, 0.0f, 1.0f, 0.0f, 0.0f, 1, 1, // Top Right
+			width, height, 0.0f, 0.0f, 1.0f, 0.0f, 1, 0,	// Bottom Right
+			0, height, 0.0f, 0.0f, 0.0f, 1.0f, 0, 0, // Bottom Left
+			0, 0, 0.0f, 1.0f, 1.0f, 0.0f, 0, 1  // Top Left 
+		};
+		GLuint indices[] = {  // Note that we start from 0!
+			0, 1, 3, // First Triangle
+			1, 2, 3  // Second Triangle
+		};
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glGenBuffers(1, &quadEBO);
+
+		glBindVertexArray(quadVAO);
+
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+		// Position attribute
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(0);
+		// Color attribute
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(1);
+		// TexCoord attribute
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(2);
+
+		glBindVertexArray(0); // Unbind VAO
+
+	}
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	bindTexture(id);
+	glBindVertexArray(quadVAO);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+
 	unbindTexture();
 }
 

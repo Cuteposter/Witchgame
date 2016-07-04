@@ -28,5 +28,9 @@ public:
 	GLuint frameBufferId;
 	GLuint depthBufferId;
 
+	GLuint quadVAO = 0;
+	GLuint quadVBO;
+	GLuint quadEBO;
+
 	int width, height;
 };

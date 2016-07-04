@@ -113,6 +113,7 @@
     <ClCompile Include="ShaderManager.cpp" />
     <ClCompile Include="ShootyBall.cpp" />
     <ClCompile Include="Solid.cpp" />
+    <ClCompile Include="SpriteBatch.cpp" />
     <ClCompile Include="StarPal.cpp" />
     <ClCompile Include="TestSystem.cpp" />
     <ClCompile Include="World.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="ShaderManager.h" />
     <ClInclude Include="ShootyBall.h" />
     <ClInclude Include="Solid.h" />
+    <ClInclude Include="SpriteBatch.h" />
     <ClInclude Include="StarPal.h" />
     <ClInclude Include="TestSystem.h" />
     <ClInclude Include="Vector2.h" />

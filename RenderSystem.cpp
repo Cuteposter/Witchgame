@@ -1,9 +1,32 @@
+#define _USE_MATH_DEFINES
 #include "RenderSystem.h"
+#include <math.h>
 
 
-RenderSystem::RenderSystem(SDL_Renderer* r)
+RenderSystem::RenderSystem(SDL_Renderer* r, int width, int height)
 {
 	renderer = r;
+
+	//Allocate framebuffers
+	fbo = new FrameBufferObject(width, height, 5);
+
+	//Set up matrices
+	projmat = glm::mat4(1.0);  //loadIdentity
+	projmat *= glm::perspective(45.0f, float(width / height), 0.1f, 100.0f);
+
+	modelmat = glm::mat4(1.0);
+
+	orthomat = glm::mat4(1.0);
+	orthomat *= glm::ortho<float>(0.0f, (float)width, (float)height, 0.0f, 1.0f, 0.0f);
+
+	glGetFloatv(GL_PROJECTION_MATRIX, pm);
+	glGetFloatv(GL_MODELVIEW_MATRIX, mm);
+
+	//Compile and link shaders
+	tshader = CShaderManager::GetInstance()->GetShader("./shaders/texture.vert", "./shaders/texture.frag", NULL);
+	tshader_i = CShaderManager::GetInstance()->GetShader("./shaders/texturei.vert", "./shaders/texture.frag", NULL);
+	gaussh = CShaderManager::GetInstance()->GetShader("./shaders/hblur.vert", "./shaders/test.frag", NULL);
+	gaussv = CShaderManager::GetInstance()->GetShader("./shaders/vblur.vert", "./shaders/test.frag", NULL);
 
 	//sprFontT.loadFromFile("./res/fnt/font.png", r);
 	sprFontT.loadFromFileGL("./res/fnt/font.png");
@@ -15,10 +38,13 @@ RenderSystem::RenderSystem(SDL_Renderer* r)
 	{
 		for (int j = 0; j < sprFontT.getWidth() / w; j++)
 		{
-			std::cout << (16 * i) + j << '\n';
+			//std::cout << (16 * i) + j << ": " << 16 * j  + 16<< "x" << 16 * i << '\n';
 			sprFont[(16*i)+j] = new SDL_Rect{ 16 * j, 16 * i, 8, h };
 		}
 	}
+
+	//Generate sprite bather vertex buffers
+	batch.genBuffers();
 
 	//Set up font sprite clips
 
@@ -46,6 +72,12 @@ RenderSystem::~RenderSystem()
 	std::cout << "Free render system memory...\n";
 	for (int i = 0; i < 160; i++)
 		delete sprFont[i];
+
+	delete tshader;
+	delete tshader_i;
+	delete gaussh;
+	delete gaussv;
+	delete fbo;
 
 	tTexture.free();
 	sprFontT.free();
@@ -78,6 +110,25 @@ void RenderSystem::drawRectFilled(SDL_Rect* rect)
 	glEnd();
 }
 
+void RenderSystem::drawCircleFilled(int x, int y, int r)
+{
+	int i;
+	int triangleAmount = 20; //# of triangles used to draw circle
+
+	//GLfloat radius = 0.8f; //radius
+	GLfloat twicePi = 2.0f * M_PI;
+
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex2f(x, y); // center of circle
+	for (i = 0; i <= triangleAmount; i++) {
+		glVertex2f(
+			x + (r * cos(i *  twicePi / triangleAmount)),
+			y + (r * sin(i * twicePi / triangleAmount))
+			);
+	}
+	glEnd();
+}
+
 void RenderSystem::drawLine(int x1, int y1, int x2, int y2)
 {
 	glDisable(GL_TEXTURE_2D);
@@ -93,7 +144,11 @@ void RenderSystem::drawStringSpr(int x, int y, std::string str)
 	//std::cout << "String to draw char " << string << " at " << x << ", " << y << '\n' << "sprFont[" << string-32 << "]\n";
 	int adjust = 0;
 
-
+	glUseProgram(tshader->GetProgram());
+	glUniformMatrix4fv(tshader->GetUniformIndex("projmat"), 1, GL_FALSE, pm);
+	glUniformMatrix4fv(tshader->GetUniformIndex("modelmat"), 1, GL_FALSE, mm);
+	glUniformMatrix4fv(tshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+	glUniform1f(tshader->GetUniformIndex("ourTexture"), sprFontT.getTextureID());
 	for (int i = 0; i < (int)str.length(); i++)
 	{
 		//adjust = 0;
@@ -106,7 +161,7 @@ void RenderSystem::drawStringSpr(int x, int y, std::string str)
 				adjust -= 1;
 			if (str.at(i - 1) == 'I')
 				adjust += 4;
-			else if (str.at(i-1) == '.' || str.at(i-1) == '!' || str.at(i - 1) == 'i' || str.at(i - 1) == 'l')
+			else if (str.at(i - 1) == '.' || str.at(i - 1) == '!' || str.at(i - 1) == 'i' || str.at(i - 1) == 'l')
 				adjust += 3;
 			else if (str.at(i - 1) == '\'' || str.at(i - 1) == ',' || str.at(i - 1) == ';' || str.at(i - 1) == 'j')
 				adjust += 2;
@@ -123,20 +178,25 @@ void RenderSystem::drawStringSpr(int x, int y, std::string str)
 		}
 
 		SDL_Rect* c = sprFont[cur - 32];
+		//std::cout << c->x << "," << c->y << " ";
 		//sprFontT.setColor(0x00, 0x00, 0x00);
 		//sprFontT.setAlpha(128);
 		//sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
+
 		drawSetColor(0x00, 0x00, 0x00, 0x80);
-		sprFontT.renderGL(x + (6 * i) - adjust + 1, y + wave + 1, c);
+		//sprFontT.renderGL(x + (6 * i) - adjust + 1, y + wave + 1, c);
 		
 		//sprFontT.setColor(0xFF, 0xFF, 0xFF);
 		//sprFontT.setAlpha(255);
 		//sprFontT.render(renderer, x + (6 * i) - adjust, y + wave, c);
 		drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
 		sprFontT.renderGL(x + (6 * i) - adjust, y + wave, c);
+		
 
 		wave = 0;//3 * sin(i+warble);
 	}
+	glUseProgram(0);
+	//std::cout << "\n";
 	//warble += 0.005;
 }
 
@@ -144,6 +204,12 @@ void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* co
 {
 	//std::cout << "String to draw char " << string << " at " << x << ", " << y << '\n' << "sprFont[" << string-32 << "]\n";
 	int adjust = 0;
+
+	glUseProgram(tshader->GetProgram());
+	glUniformMatrix4fv(tshader->GetUniformIndex("projmat"), 1, GL_FALSE, pm);
+	glUniformMatrix4fv(tshader->GetUniformIndex("modelmat"), 1, GL_FALSE, mm);
+	glUniformMatrix4fv(tshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+	glUniform1f(tshader->GetUniformIndex("ourTexture"), sprFontT.getTextureID());
 	for (int i = 0; i < (int)str.length(); i++)
 	{
 		//adjust = 0;
@@ -176,6 +242,7 @@ void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* co
 		//sprFontT.setColor(0x00, 0x00, 0x00);
 		//sprFontT.setAlpha(128);
 		//sprFontT.render(renderer, x + (6 * i) - adjust + 1, y + wave + 1, c);
+
 		drawSetColor(0x00, 0x00, 0x00, 0x80);
 		sprFontT.renderGL(x + (6 * i) - adjust + 1, y + wave + 1, c);
 
@@ -184,9 +251,11 @@ void RenderSystem::drawStringSprExt(int x, int y, std::string str, SDL_Color* co
 		//sprFontT.render(renderer, x + (6 * i) - adjust, y + wave, c);
 		drawSetColor(color->r, color->g, color->b, color->a);
 		sprFontT.renderGL(x + (6 * i) - adjust, y + wave, c);
+		
 
 		wave = 0;//3 * sin(warble);
 	}
+	glUseProgram(0);
 	warble += 0.005;
 }
 
@@ -283,7 +352,78 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 
 		//sprite.render(r, x, y);
 		//s->sprite.render(renderer, p->x - cam->x, p->y - cam->y, &currentClip);
-		s->sprite.renderGL(p->x - cam->x, p->y - cam->y, &currentClip);
+		
+		glUseProgram(tshader->GetProgram());
+		glUniformMatrix4fv(tshader->GetUniformIndex("projmat"), 1, GL_FALSE, pm);
+		glUniformMatrix4fv(tshader->GetUniformIndex("modelmat"), 1, GL_FALSE, mm);
+		glUniformMatrix4fv(tshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+		glUniform1f(tshader->GetUniformIndex("ourTexture"), s->sprite.getTextureID());
+
+		if (s->glow)
+		{
+			////test FBO here
+			//fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
+			//glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT);
+
+			//glClearColor(0, 0, 0, 0);
+			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			////Draw to secondary texture
+			//fbo->setRenderToTexture(1);
+			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			//glBlendEquation(GL_FUNC_ADD);
+			//glBlendFunc(GL_SRC_ALPHA, GL_ZERO);
+			//
+			//
+			////First render (no blur)
+			////s->sprite.renderScaledGL(p->x - s->sprite.getWidth()*s->scale*1.5f / 4 - cam->x, p->y - s->sprite.getHeight()*s->scale*1.5f / 4 - cam->y, s->sprite.getWidth()*s->scale*1.5f, s->sprite.getHeight()*s->scale*1.25f, &currentClip);
+			//s->sprite.renderScaledGL(p->x - cam->x, p->y - cam->y, s->sprite.getWidth()*s->scale, s->sprite.getWidth()*s->scale, &currentClip);
+			////Draw second texture to the first one
+			////First pass, horizontal blur
+			//fbo->setRenderToTexture(0);
+			//glUseProgram(gaussh->GetProgram());
+			//glUniform1f(gaussh->GetUniformIndex("image"), fbo->textures[1]);
+			//glUniform1f(gaussh->GetUniformIndex("targetWidth"), fbo->width);
+
+			//fbo->draw(1);
+
+			//glUseProgram(gaussv->GetProgram());
+			//glUniform1f(gaussv->GetUniformIndex("originalTexture"), fbo->textures[0]);
+			//glUniform1f(gaussv->GetUniformIndex("targetHeight"), fbo->height);
+
+			//fbo->draw(0);
+
+			////for (int b = 0; b < 1; b++)
+			////{
+			////	glUseProgram(gaussh->GetProgram());
+			////	glUniform1f(gaussh->GetUniformIndex("originalTexture"), fbo->textures[0]);
+			////	glUniform1f(gaussh->GetUniformIndex("targetWidth"), fbo->width);
+
+			////	fbo->draw(0);
+
+			////	glUseProgram(gaussv->GetProgram());
+			////	glUniform1f(gaussv->GetUniformIndex("originalTexture"), fbo->textures[0]);
+			////	glUniform1f(gaussv->GetUniformIndex("targetHeight"), fbo->height);
+
+			////	fbo->draw(0);
+			////}
+
+			//glUseProgram(0);
+
+			//fbo->unsetRenderToTexture();
+			//fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
+			//glPopAttrib();
+			//fbo->draw(0);
+
+			//s->sprite.renderScaledGL(p->x - cam->x, p->y - cam->y, s->sprite.getWidth()*s->scale, s->sprite.getWidth()*s->scale, &currentClip);
+			s->sprite.renderGL(p->x - cam->x, p->y - cam->y, &currentClip);
+			
+		}
+		else
+		{
+			drawSetColor(255, 49, 42, 255);
+			s->sprite.renderScaledGL(p->x - cam->x, p->y - cam->y, s->sprite.getWidth()*s->scale, s->sprite.getWidth()*s->scale, &currentClip);
+		}
+		glUseProgram(0);
 
 		//Go to next frame
 		s->frame++;
@@ -298,10 +438,18 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 	ComponentCollision* col = e->getComponent<ComponentCollision>();
 	if (col != NULL)
 	{
-		SDL_Rect colrect = SDL_Rect{ col->rect.x - cam->x, col->rect.y - cam->y, col->rect.w, col->rect.h };
-		//SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
-		drawSetColor(0xFF, 0x00, 0x00, 0xFF);
-		//SDL_RenderDrawRect(renderer, &colrect);
+		if (col->circ.r != 0)	//If circle has a radius greater than 0, it must have been initialized
+		{
+			drawSetColor(0xFF, 0x00, 0x00, 0xFF);
+			drawCircleFilled(col->circ.x - cam->x, col->circ.y - cam->y, col->circ.r);
+		}
+		else
+		{
+			SDL_Rect colrect = SDL_Rect{ col->rect.x - cam->x, col->rect.y - cam->y, col->rect.w, col->rect.h };
+			//SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
+			//drawSetColor(0xFF, 0x00, 0x00, 0xFF);
+			//SDL_RenderDrawRect(renderer, &colrect);
+		}
 	}
 
 	ComponentMessage* m = e->getComponent<ComponentMessage>();
@@ -401,14 +549,43 @@ void RenderSystem::handle(Entity* e, Camera* cam)
 
 	//ComponentEmitter* emitter = e->getComponent<ComponentEmitter>();
 	if (emitter != NULL)
-	{
+	{			
+		glUseProgram(tshader_i->GetProgram());
+		glUniformMatrix4fv(tshader_i->GetUniformIndex("projmat"), 1, GL_FALSE, pm);
+		glUniformMatrix4fv(tshader_i->GetUniformIndex("modelmat"), 1, GL_FALSE, mm);
+		glUniformMatrix4fv(tshader_i->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+		glUniform1f(tshader_i->GetUniformIndex("ourTexture"), s->sprite.getTextureID());
+
+		batch.setSize(s->sprite.getWidth(), s->sprite.getHeight());
+
+		//batch.vertices = s->sprite.vertices;
+		//batch.indices = s->sprite.indices;
+		batch.offsets.clear();
+		batch.scales.clear();
+
 		ComponentColor* c = e->getComponent<ComponentColor>();
 		for (Particle* p : emitter->particles)
 		{
 			if (c != NULL)
 				drawSetColor(c->color.r, c->color.g, c->color.b, c->color.a); //p->render(renderer, cam, &(c->color));
 			//else
-				p->render(renderer, cam);
+				//p->render(renderer, cam);
+			batch.offsets.push_back(p->x - cam->x);
+			batch.offsets.push_back(p->y - cam->y);
+			batch.pushScale((float)p->w / (float)s->sprite.getWidth(), (float)p->h / (float)s->sprite.getHeight());
+			//batch.pushScale((float)p->h / (float)s->sprite.getHeight());
+		}
+
+		if (batch.offsets.size() > 0)
+		{
+			glUniform2fv(tshader_i->GetUniformIndex("offsets"), batch.offsets.size(), &batch.offsets[0]);
+
+
+			glPushAttrib(GL_COLOR_BUFFER_BIT);	//Save current blending function
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);	//Additive blending
+			glBindTexture(GL_TEXTURE_2D, s->sprite.getTextureID());	
+			batch.render();
+			glPopAttrib();	//Restore blending function
 		}
 	}
 }

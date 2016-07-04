@@ -10,7 +10,7 @@ Game::Game(SDL_Renderer* renderer)
 	//room.r = r;
 	//room.load();
 	p.loadSprite(r);
-	bg.loadFromFile("./res/spr/bg.png", r);
+	bg.loadFromFile("./res/spr/bg32.png", r);
 	//emitter->loadSprite(r);
 }
 

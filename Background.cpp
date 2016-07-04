@@ -82,6 +82,7 @@ void Background::render(SDL_Renderer* r)
 	else
 	{
 		//Static background
-		bg.render(r, 0, 0);
+		SDL_Rect cliptest = SDL_Rect{ 0, 0, bg.getWidth(), bg.getHeight() };
+		bg.renderGL(0, 0, &cliptest);
 	}
 }

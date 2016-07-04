@@ -43,7 +43,7 @@ public:
 	//Getters
 	int getWidth();
 	int getHeight();
-protected:
+//protected:
 	float x, y;
 	int w, h;
 };

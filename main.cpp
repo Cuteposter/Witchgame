@@ -36,6 +36,7 @@
 #include "ShaderManager.h"
 #include "Shader.h"
 #include "FrameBufferObject.h"
+#include "SpriteBatch.h"
 
 //ECS testing...
 #include "World.h"
@@ -103,6 +104,7 @@ Mix_Music *gMusic = NULL;
 SDL_GLContext glcontext;
 
 /*TEST*/
+SpriteBatch batch;
 LTexture dummy;
 CShader* testshader = NULL;
 
@@ -189,8 +191,8 @@ bool init()
 				//Initialize SDL_mixer
 				//if (Mix_Init(MIX_INIT_OGG | MIX_INIT_MP3) != MIX_INIT_OGG | MIX_INIT_MP3)
 				//{
-					//printf("SDL_mixer could not initialize with ogg and mp3 support! SDL_mixer Error: %s\n", Mix_GetError());
-					//success = false;
+				//printf("SDL_mixer could not initialize with ogg and mp3 support! SDL_mixer Error: %s\n", Mix_GetError());
+				//success = false;
 				//}
 
 				if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
@@ -370,7 +372,7 @@ int main(int argc, char* args[])
 	FireSystem* fs = new FireSystem();
 	MoveSystem* ms = new MoveSystem();
 	CollisionSystem* cs = new CollisionSystem();
-	Camera* cam = new Camera(0, 0, 192, 64, 640 - (192*2), 480 - 128);
+	Camera* cam = new Camera(0, 0, 192, 64, 640 - (192 * 2), 480 - 128);
 	Background* back = NULL;
 
 	Uint32 lastMouseState = 0;
@@ -395,7 +397,7 @@ int main(int argc, char* args[])
 			back = new Background("./res/bg/bg32.png", true, gRenderer);
 
 			Entity* ent;
-			RenderSystem* rs = new RenderSystem(gRenderer);
+			RenderSystem* rs = new RenderSystem(gRenderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 			//Ctrl + K then Ctrl + U to uncomment
 			//w->createEntity();
@@ -580,8 +582,8 @@ int main(int argc, char* args[])
 						tmxparser::calculateTileCoordinatesUV(map.tilesetCollection[it.tilesetIndex], it.tileFlatIndex, 0.5f, true, rect);
 						//printf("Tileset[%u]@Tile[%u]=Rect( (%f, %f)->(%f, %f) )\n", it.tilesetIndex, it.tileFlatIndex, rect.u, rect.v, rect.u2, rect.v2);
 						//printf("ID:%u, X:%d, Y:%d\n", it.tileFlatIndex, tx, ty);
-						
-						switch (it.gid-1)
+
+						switch (it.gid - 1)
 						{
 						case -1:
 							break;
@@ -605,14 +607,11 @@ int main(int argc, char* args[])
 							break;
 						case 4:
 							ent = w->createEntity();
-							ent->add(new ComponentPosition{ tx, ty });
-							ent->add(new ComponentSprite(gRenderer, "./res/spr/part_glowball.png", 64, 64));
-							ent->add(new ComponentColor(255, 50, 0, 255));
-							ent->add(new ComponentEmitter{ 10 });
+							ent->add(new ComponentSolid{ tx, ty, tsw, 8, true });
 							break;
 						case 5:
 							break;
-						case 6:
+						case 11:
 							ent = w->createEntity();
 							ent->add(new ComponentPosition{ tx, ty });
 							ent->add(new ComponentType(LADDER));
@@ -620,10 +619,13 @@ int main(int argc, char* args[])
 							ent->add(new ComponentCollision{ tx, ty, tw, th, false });
 							ent->add(new ComponentSolid{ tx, ty, tsw, 4, true });
 							break;
+						default:
+							std::cerr << "ERROR: Tile ID" << it.gid - 1 << " not recognized!\n";
+							break;
 						}
 
 						tx += tw;
-						if (tx > (map.width-1) * tw)
+						if (tx > (map.width - 1) * tw)
 						{
 							tx = 0;
 							ty += th;
@@ -651,7 +653,7 @@ int main(int argc, char* args[])
 
 						switch (obj.referenceGid - 1)
 						{
-						case 4:
+						case 9:
 							ent = w->createEntity();
 							ent->add(new ComponentPosition{ ox, oy });
 							ent->add(new ComponentSprite(gRenderer, "./res/spr/part_glowball.png", 64, 64));
@@ -674,9 +676,9 @@ int main(int argc, char* args[])
 							ent->add(new ComponentColor(r, g, b, a));
 							ent->add(new ComponentEmitter{ 10 });
 							break;
-						case 5:
+						case 10:
 							ent = w->createEntity();
-							ent->add(new ComponentPosition{ox, oy});
+							ent->add(new ComponentPosition{ ox, oy });
 							ent->add(new ComponentType(SIGN));
 							ent->add(new ComponentSprite(gRenderer, "./res/spr/sign.png", 32, 32));
 
@@ -688,6 +690,35 @@ int main(int argc, char* args[])
 							ent->add(new ComponentCollision{ ox, oy, 64, 32, false });
 							//w->entities.at(1)->add(new ComponentMove());
 
+							break;
+						case 8:
+							ent = w->createEntity();
+							ent->add(new ComponentCollision{ ox, oy, atoi(obj.propertyMap.at("radius").c_str()), false });
+							break;
+						case 13:
+							ent = w->createEntity();
+							ent->add(new ComponentPosition{ ox, oy });
+							ent->add(new ComponentSprite(gRenderer, "./res/spr/part_sparkledrop.png", 32, 32, 1.0f, obj.propertyMap.at("glow").compare("false")));
+
+							//Get color properties for fire emitter
+							for (auto p : obj.propertyMap)
+							{
+								//std::cout << "Property " << p.first << ": " << p.second << "\n";
+								if (p.first == "R")
+									r = atoi(p.second.c_str());
+								else if (p.first == "G")
+									g = atoi(p.second.c_str());
+								else if (p.first == "B")
+									b = atoi(p.second.c_str());
+								else if (p.first == "A")
+									a = atoi(p.second.c_str());
+
+							}
+
+							ent->add(new ComponentColor(r, g, b, a));
+							break;
+						default:
+							std::cerr << "ERROR: Object ID" << obj.referenceGid - 1 << " not recognized!\n";
 							break;
 						}
 					}
@@ -850,7 +881,7 @@ int main(int argc, char* args[])
 					break;
 
 				//Game logic increment
-				
+
 				//Make a reset method for this
 				cs->grounded = false;
 				cs->belowLadder = false;
@@ -900,7 +931,154 @@ int main(int argc, char* args[])
 
 				/*RENDER BACKGROUND*/
 
+				//test FBO here
+				game.fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT);
+
+				glClearColor(0, 0, 0, 0);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				//Draw to secondary texture
+				game.fbo->setRenderToTexture(1);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glBlendEquation(GL_FUNC_ADD);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				//Set up matrices
+				glm::mat4 projmat;
+				glm::mat4 modelmat;
+				glm::mat4 orthomat;
+				projmat = glm::mat4(1.0);  //loadIdentity
+				projmat *= glm::perspective(45.0f, float(SCREEN_WIDTH / SCREEN_HEIGHT), 0.1f, 100.0f);
+				modelmat = glm::mat4(1.0);
+
+				orthomat = glm::mat4(1.0);
+				orthomat *= glm::ortho<float>(0.0f, (float)SCREEN_WIDTH, (float)SCREEN_HEIGHT, 0.0f, 1.0f, 0.0f);
+
+				GLfloat p[16];
+				glGetFloatv(GL_PROJECTION_MATRIX, p);
+				GLfloat m[16];
+				glGetFloatv(GL_MODELVIEW_MATRIX, m);
+
+
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/texture.vert", "./shaders/texture.frag", NULL);
+
+				glUseProgram(testshader->GetProgram());
+				//glUniformMatrix4fv(testshader->GetUniformIndex("originalTexture"), , 1, GL_FALSE, glm::value_ptr(Projection));
+				glUniformMatrix4fv(testshader->GetUniformIndex("projmat"), 1, GL_FALSE, p);
+				glUniformMatrix4fv(testshader->GetUniformIndex("modelmat"), 1, GL_FALSE, m);
+				glUniformMatrix4fv(testshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+				glUniform1f(testshader->GetUniformIndex("ourTexture"), back->bg.getTextureID());
+				glUniform1f(testshader->GetUniformIndex("targetWidth"), game.fbo->width);
+				glUniform1f(testshader->GetUniformIndex("fbo"), false);
+
 				back->render(gRenderer);
+				//game.render(cam);
+
+				glUseProgram(0);
+
+				//Draw second texture to the first one
+				game.fbo->setRenderToTexture(0);
+
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/hblur.vert", "./shaders/test.frag", NULL);
+				glUseProgram(testshader->GetProgram());
+				//glUniformMatrix4fv(testshader->GetUniformIndex("originalTexture"), , 1, GL_FALSE, glm::value_ptr(Projection));
+				glUniformMatrix4fv(testshader->GetUniformIndex("projmat"), 1, GL_FALSE, p);
+				glUniformMatrix4fv(testshader->GetUniformIndex("modelmat"), 1, GL_FALSE, m);
+				glUniformMatrix4fv(testshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+				glUniform1f(testshader->GetUniformIndex("originalTexture"), game.fbo->textures[1]);
+				glUniform1f(testshader->GetUniformIndex("targetWidth"), game.fbo->width);
+
+				game.fbo->draw(1);
+
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/vblur.vert", "./shaders/test.frag", NULL);
+				glUseProgram(testshader->GetProgram());
+				glUniformMatrix4fv(testshader->GetUniformIndex("projmat"), 1, GL_FALSE, p);
+				glUniformMatrix4fv(testshader->GetUniformIndex("modelmat"), 1, GL_FALSE, m);
+				glUniformMatrix4fv(testshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+				glUniform1f(testshader->GetUniformIndex("originalTexture"), game.fbo->textures[0]);
+				glUniform1f(testshader->GetUniformIndex("targetHeight"), game.fbo->height);
+
+				game.fbo->draw(0);
+				glUseProgram(0);
+
+				game.fbo->unsetRenderToTexture();
+				game.fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
+				glPopAttrib();
+
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/texture.vert", "./shaders/texture.frag", NULL);
+				glUseProgram(testshader->GetProgram());
+				glUniformMatrix4fv(testshader->GetUniformIndex("projmat"), 1, GL_FALSE, p);
+				glUniformMatrix4fv(testshader->GetUniformIndex("modelmat"), 1, GL_FALSE, m);
+				glUniformMatrix4fv(testshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+				glUniform1f(testshader->GetUniformIndex("ourTexture"), game.fbo->textures[0]);
+				glUniform1f(testshader->GetUniformIndex("targetWidth"), game.fbo->width);
+				glUniform1f(testshader->GetUniformIndex("fbo"), true);
+				game.fbo->draw(0);
+				glUniform1f(testshader->GetUniformIndex("fbo"), false);
+				glUseProgram(0);
+
+				//HORSESHIT
+				if (dummy.getTextureID() == 0)
+				{
+					dummy.loadFromFileGL("./res/spr/part_glowball.png");
+					std::cout << "LOADED\n";
+
+					batch.genBuffers();
+					//batch.vertices = dummy.vertices;
+					//batch.indices = dummy.indices;
+				}
+				SDL_Rect cliptest = SDL_Rect{ 96*2, 82*1, 96, 82 };
+
+				batch.offsets.clear();
+				batch.scales.clear();
+				batch.setSize(dummy.getWidth(), dummy.getHeight());
+				//glm::vec2 translations[100];
+				//int index = 0;
+				GLfloat offset = 64;
+				for (GLint y = 0; y < 10; y += 1)
+				{
+					for (GLint x = 0; x < 10; x += 1)
+					{
+						glm::vec2 translation;
+						translation.x = (GLfloat)x * offset + rand() % 4;
+						translation.y = (GLfloat)y * offset + rand() % 4;
+						//translations[index++] = translation;
+						batch.offsets.push_back(translation.x);
+						batch.offsets.push_back(translation.y);
+					}
+				}
+
+				batch.defaultScales(0.5f);
+
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/texturei.vert", "./shaders/texture.frag", NULL);
+				glUseProgram(testshader->GetProgram());
+
+				//for (GLuint i = 0; i < 100; i++)
+				//{
+
+				//	GLint location = glGetUniformLocation(testshader->GetProgram(), ("offsets[" + std::to_string(i) + "]").c_str());
+				//	std::cout << "LOCATION: " << location << "\n";
+				//	glUniform2f(location, translations[i].x, translations[i].y);
+				//}
+
+				glUniform2fv(testshader->GetUniformIndex("offsets"), 100, &batch.offsets[0]);
+
+				//glUniformMatrix4fv(testshader->GetUniformIndex("originalTexture"), , 1, GL_FALSE, glm::value_ptr(Projection));
+				glUniformMatrix4fv(testshader->GetUniformIndex("projmat"), 1, GL_FALSE, p);
+				glUniformMatrix4fv(testshader->GetUniformIndex("modelmat"), 1, GL_FALSE, m);
+				glUniformMatrix4fv(testshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+				glUniform1f(testshader->GetUniformIndex("ourTexture"), dummy.getTextureID());
+				glUniform1f(testshader->GetUniformIndex("targetWidth"), game.fbo->width);
+				glBindTexture(GL_TEXTURE_2D, dummy.getTextureID());
+
+				glPushAttrib(GL_COLOR_BUFFER_BIT);	//Save current blending function
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE);	//Additive blending
+				//batch.render();
+				glPopAttrib();	//Restore blending function
+				
+				//dummy.renderGL(80, 80);
+
+				glUseProgram(0);
 
 				/*RENDER LIGHTING (Experimental, OpenGL. Render code must be changed to finish porting)*/
 				//glLoadIdentity();
@@ -945,79 +1123,19 @@ int main(int argc, char* args[])
 
 				rs->drawSetColor(0xFF, 0xFF, 0xFF, 0xFF);
 
-				//test FBO here
-				game.fbo->bindFrameBuffer(GL_FRAMEBUFFER_EXT);
-				glPushAttrib(GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT);
+				testshader = CShaderManager::GetInstance()->GetShader("./shaders/texture.vert", "./shaders/texture.frag", NULL);
 
-				glClearColor(0, 0, 0, 0);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				//Draw to secondary texture
-				game.fbo->setRenderToTexture(1);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				glBlendEquation(GL_FUNC_ADD);
-				glBlendFunc(GL_SRC_ALPHA, GL_ZERO);
-
-				//Draw the test
-				//game.render(cam);
-				
-				// Set up kernel weights and calculate texture offsets
-				const int KERNEL_SIZE = 9;
-				const float step_w = 1.0 / game.fbo->width;
-				const float step_h = 1.0 / game.fbo->height;
-
-				const GLfloat kernel_weights[KERNEL_SIZE] = {
-					1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0,
-					2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0,
-					1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0
-				};
-
-				const GLfloat texture_offsets[KERNEL_SIZE * 2] = {
-					-step_w, -step_h,
-					0.0, -step_h,
-					step_w, -step_h,
-					-step_w, 0.0,
-					0.0, 0.0,
-					step_w, 0.0,
-					-step_w, step_h,
-					0.0, step_h,
-					step_w, step_h
-				};
+				glUseProgram(testshader->GetProgram());
+				//glUniformMatrix4fv(testshader->GetUniformIndex("originalTexture"), , 1, GL_FALSE, glm::value_ptr(Projection));
+				glUniformMatrix4fv(testshader->GetUniformIndex("projmat"), 1, GL_FALSE, p);
+				glUniformMatrix4fv(testshader->GetUniformIndex("modelmat"), 1, GL_FALSE, m);
+				glUniformMatrix4fv(testshader->GetUniformIndex("orthomat"), 1, GL_FALSE, &orthomat[0][0]);
+				glUniform1f(testshader->GetUniformIndex("ourTexture"), game.p.sprite.getTextureID());
+				glUniform1f(testshader->GetUniformIndex("targetWidth"), game.fbo->width);
 
 				game.render(cam);
 
-				//Draw second texture to the first one
-				game.fbo->setRenderToTexture(0);
-				testshader = CShaderManager::GetInstance()->GetShader("./shaders/blur.vert", "./shaders/blur.frag", NULL);
-				glUseProgram(testshader->GetProgram());
-				glUniform1f(testshader->GetUniformIndex("sampler0"), game.p.sprite.getTextureID());
-				glUniform1fv(testshader->GetUniformIndex("kernel_weights"), 9, kernel_weights);
-				glUniform2fv(testshader->GetUniformIndex("texture_offsets"), 9, texture_offsets);
-				//glUniform2f(testshader->GetUniformIndex("dir"), 1.0f, 0.0f);
-				//glUniform1f(testshader->GetUniformIndex("radius"), 1.0f);
-				//glUniform1f(testshader->GetUniformIndex("opacity"), 0.5);
-				game.fbo->draw(1);
 				glUseProgram(0);
-				game.fbo->unsetRenderToTexture();
-				game.fbo->unbindFrameBuffer(GL_FRAMEBUFFER_EXT);
-				glPopAttrib();
-				game.fbo->draw(0);
-
-				/*DEBUG HEIGHT TESTING*/
-				if (h)
-				{
-					for (int i = 0; i < 10; i++)
-					{
-						rs->drawStringSpr(8, 416 - (32 * i) - 12, std::to_string(32 * i));
-					}
-				}
-
-				//SDL_Color red = SDL_Color{ 255, 0, 0, 255 };
-				//std::string hp = "` ";
-				//for (int i = 0; i < game.p.HP; i++)
-				//{
-				//	hp.append("|");
-				//}
-				//rs->drawStringSprExt(4, 20, hp, &red);
 
 				//Update screen
 				//SDL_SetRenderTarget(gRenderer, NULL);
@@ -1103,7 +1221,7 @@ int main(int argc, char* args[])
 					cam->render(gRenderer);
 					rs->drawStringSpr(12, 4, std::to_string(cam->x) + ", " + std::to_string(cam->y));
 				}
-				
+
 
 				//Shader test
 				//testshader = CShaderManager::GetInstance()->GetShader("./shaders/opacity.vert", "./shaders/opacity.frag", NULL);
@@ -1119,13 +1237,13 @@ int main(int argc, char* args[])
 				//	std::cout << "LOADED\n";
 				//}
 				//SDL_Rect cliptest = SDL_Rect{ 0, 0, 96, 80 };
-				
+
 
 				SDL_GL_SwapWindow(gWindow);
 				//SDL_RenderPresent(gRenderer);
 				//SDL_SetRenderTarget(gRenderer, tRenderer.getTexture());
 				++countedFrames;
-				
+
 
 				lastMouseState = SDL_GetMouseState(NULL, NULL);
 			}
